@@ -9,8 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const SECRET_KEY = 'your-secret-key';  // Use env var in real deployment
+const SECRET_KEY = 'your-secret-key'; // In production, store in environment variable
 
+// JWT auth middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -24,7 +25,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Register
+// Register route
 app.post('/register', async (req, res) => {
   const { name, email, password, role } = req.body;
   if (!name || !email || !password || !role) {
@@ -47,7 +48,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// Login
+// Login route
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
   db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
@@ -65,7 +66,7 @@ app.post('/login', (req, res) => {
 app.get('/dashboard', authenticateToken, (req, res) => {
   const { id, role } = req.user;
   if (role === 'admin') {
-    db.get('SELECT COUNT(*) as totalEmployees FROM users WHERE role = ?', ['employee'], (err, total) => {
+    db.get('SELECT COUNT(*) AS totalEmployees FROM users WHERE role = ?', ['employee'], (err, total) => {
       if (err) return res.status(500).json({ message: 'DB error', error: err.message });
       db.all('SELECT name, email, role, last_login FROM users ORDER BY last_login DESC LIMIT 5', [], (err, recentLogins) => {
         if (err) return res.status(500).json({ message: 'DB error', error: err.message });
@@ -116,7 +117,7 @@ app.get('/employees', authenticateToken, (req, res) => {
 // Serve React static build
 app.use(express.static(path.join(__dirname, 'frontend-react', 'build')));
 
-// Catch-all: for any request not handled above, serve index.html via regex route
+// Catch-all: send React’s index.html for any unmatched route
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend-react', 'build', 'index.html'));
 });
