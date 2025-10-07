@@ -247,7 +247,6 @@ export default function LoginPage() {
           </Box>
         </StyledPaper>
 
-        {/* Optional: Add decorative elements */}
         <Box sx={{ mt: 3, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
             © 2024 Marabes. All rights reserved.

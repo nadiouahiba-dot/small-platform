@@ -44,7 +44,7 @@ function App() {
           }
         />
 
-        {/* Optional: catch-all for unmatched routes */}
+        {/*  catch-all for unmatched routes */}
         <Route path="*" element={<h1>404 - Not Found</h1>} />
       </Routes>
     </Router>

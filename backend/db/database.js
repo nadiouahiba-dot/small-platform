@@ -23,7 +23,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
       } else {
         console.log('Users table ready.');
 
-        // Insert default admin if not exists
+        // admin 
         const bcrypt = require('bcrypt');
         const defaultAdminEmail = 'admin@example.com';
         const defaultEmployeeEmail = 'employee@example.com';
@@ -42,7 +42,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
           }
         });
 
-        // Insert default employee if not exists
+        //  employee 
         db.get(`SELECT * FROM users WHERE email = ?`, [defaultEmployeeEmail], async (err, row) => {
           if (!row) {
             const hashedPassword = await bcrypt.hash('employee123', 10);

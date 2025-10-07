@@ -5,9 +5,9 @@ const db = require('../db/database');
 
 const router = express.Router();
 
-const JWT_SECRET = 'your_jwt_secret'; // You should move this to a .env file later
+const JWT_SECRET = 'your_jwt_secret'; 
 
-// ✅ Register
+//  Register
 router.post('/register', async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -33,7 +33,7 @@ router.post('/register', async (req, res) => {
   });
 });
 
-// ✅ Login
+//  Login
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
 
