@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ReportsPage from './pages/ReportsPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import EditUserPage from './pages/EditUserPage';
 
 function App() {
   return (
@@ -44,7 +45,17 @@ function App() {
           }
         />
 
-        {/*  catch-all for unmatched routes */}
+        {/* New admin‑only route */}
+        <Route
+          path="/edit-user/:id"
+          element={
+            <ProtectedRoute role="admin">
+              <EditUserPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* catch-all for unmatched routes */}
         <Route path="*" element={<h1>404 - Not Found</h1>} />
       </Routes>
     </Router>

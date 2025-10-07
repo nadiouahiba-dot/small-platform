@@ -1,36 +1,31 @@
-// src/pages/RegisterPage.js
-import React, { useState } from 'react';
+// src/pages/EditUserPage.js
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import {
-  Box,
-  Button,
   Container,
-  TextField,
-  Typography,
   Paper,
+  Typography,
+  TextField,
+  Button,
   Alert,
+  Box,
   Avatar,
   InputAdornment,
   IconButton,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Divider,
+  CircularProgress,
+  Stack,
 } from '@mui/material';
 import {
-  PersonAdd as PersonAddIcon,
+  Edit as EditIcon,
   Person as PersonIcon,
   Email as EmailIcon,
   Lock as LockIcon,
+  Save as SaveIcon,
+  ArrowBack as ArrowBackIcon,
   Visibility,
   VisibilityOff,
-  AdminPanelSettings as AdminIcon,
-  Work as WorkIcon,
-  Edit as EditIcon,
-  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -46,7 +41,6 @@ const HeaderBox = styled(Box)(({ theme }) => ({
   color: 'white',
   position: 'relative',
   overflow: 'hidden',
-  textAlign: 'center',
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -90,28 +84,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const StyledFormControl = styled(FormControl)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: theme.spacing(2),
-    backgroundColor: '#ffffff',
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      backgroundColor: '#f8faf9',
-    },
-    '&.Mui-focused': {
-      backgroundColor: '#ffffff',
-      '& .MuiOutlinedInput-notchedOutline': {
-        borderColor: '#2d9f47',
-        borderWidth: '2px',
-      },
-    },
-  },
-  '& .MuiInputLabel-root.Mui-focused': {
-    color: '#2d9f47',
-  },
-}));
-
-const RegisterButton = styled(Button)(({ theme }) => ({
+const SaveButton = styled(Button)(({ theme }) => ({
   borderRadius: theme.spacing(3),
   padding: theme.spacing(1.8, 4),
   textTransform: 'none',
@@ -130,32 +103,6 @@ const RegisterButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const SecondaryButton = styled(Button)(({ theme }) => ({
-  borderRadius: theme.spacing(3),
-  padding: theme.spacing(1.2, 3),
-  textTransform: 'none',
-  fontWeight: 600,
-  fontSize: '0.95rem',
-  borderColor: '#2d9f47',
-  color: '#2d9f47',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    borderColor: '#1a7a35',
-    backgroundColor: 'rgba(45, 159, 71, 0.04)',
-    transform: 'translateY(-1px)',
-  },
-}));
-
-const LogoAvatar = styled(Avatar)(({ theme }) => ({
-  width: 80,
-  height: 80,
-  margin: '0 auto',
-  marginBottom: theme.spacing(2),
-  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  border: '3px solid rgba(255, 255, 255, 0.3)',
-  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
-}));
-
 const BackButton = styled(Button)(({ theme }) => ({
   borderRadius: theme.spacing(3),
   padding: theme.spacing(1.2, 3),
@@ -172,40 +119,56 @@ const BackButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const RegisterPage = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('employee');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
+const LogoAvatar = styled(Avatar)(({ theme }) => ({
+  width: 80,
+  height: 80,
+  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  border: '3px solid rgba(255, 255, 255, 0.3)',
+  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+}));
 
-  const handleNameChange = (e) => setName(e.target.value);
-  const handleEmailChange = (e) => setEmail(e.target.value);
-  const handlePasswordChange = (e) => setPassword(e.target.value);
-  const handleRoleChange = (e) => setRole(e.target.value);
+export default function EditUserPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    axios
+      .get(`/users/${id}`)
+      .then(res => {
+        setForm({
+          name: res.data.name,
+          email: res.data.email,
+          password: ''
+        });
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setErrorMsg('Failed to load user data');
+        setLoading(false);
+      });
+  }, [id]);
+
+  const handleChange = (e) => {
+    setForm(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
+    setErrorMsg('');
     try {
-      const response = await axios.post('http://localhost:5000/register', {
-        name,
-        email,
-        password,
-        role,
-      });
-      if (response.data.success) {
-        setSuccess(true);
-        setName('');
-        setEmail('');
-        setPassword('');
-      }
-    } catch (error) {
-      setError('Error during registration. Please try again.');
+      await axios.put(`/users/${id}`, form);
+      navigate('/admin-dashboard');
+    } catch (err) {
+      console.error('Update error', err);
+      setErrorMsg(err.response?.data?.message || 'Update failed');
     }
   };
 
@@ -216,6 +179,32 @@ const RegisterPage = () => {
   const handleBack = () => {
     navigate(-1);
   };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          gap: 2 
+        }}>
+          <CircularProgress size={60} thickness={4} sx={{ color: '#2d9f47' }} />
+          <Typography variant="h6" color="text.secondary">
+            Loading user data...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -241,7 +230,7 @@ const RegisterPage = () => {
                 <Box sx={{ flex: 1 }} />
                 <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                   <LogoAvatar>
-                    <PersonAddIcon sx={{ fontSize: 40 }} />
+                    <EditIcon sx={{ fontSize: 40 }} />
                   </LogoAvatar>
                 </Box>
                 <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
@@ -255,16 +244,16 @@ const RegisterPage = () => {
                 </Box>
               </Box>
               <Typography variant="h4" fontWeight="700" gutterBottom textAlign="center">
-                Create Account
+                Edit User
               </Typography>
               <Typography variant="body1" sx={{ opacity: 0.9 }} textAlign="center">
-                Register a new user 
+                Update user information for ID: {id}
               </Typography>
             </Box>
           </HeaderBox>
 
           <Box sx={{ p: 4 }}>
-            {error && (
+            {errorMsg && (
               <Alert 
                 severity="error" 
                 sx={{ 
@@ -273,20 +262,7 @@ const RegisterPage = () => {
                   boxShadow: '0 4px 12px rgba(211, 47, 47, 0.15)'
                 }}
               >
-                {error}
-              </Alert>
-            )}
-
-            {success && (
-              <Alert 
-                severity="success" 
-                sx={{ 
-                  mb: 3, 
-                  borderRadius: 2,
-                  boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)'
-                }}
-              >
-                Registration successful! User has been created.
+                {errorMsg}
               </Alert>
             )}
 
@@ -298,11 +274,11 @@ const RegisterPage = () => {
             >
               <StyledTextField
                 label="Full Name"
-                type="text"
+                name="name"
                 required
                 fullWidth
-                value={name}
-                onChange={handleNameChange}
+                value={form.name}
+                onChange={handleChange}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -315,11 +291,12 @@ const RegisterPage = () => {
 
               <StyledTextField
                 label="Email Address"
+                name="email"
                 type="email"
                 required
                 fullWidth
-                value={email}
-                onChange={handleEmailChange}
+                value={form.email}
+                onChange={handleChange}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -331,12 +308,13 @@ const RegisterPage = () => {
               />
 
               <StyledTextField
-                label="Password"
+                label="New Password"
+                name="password"
                 type={showPassword ? 'text' : 'password'}
-                required
                 fullWidth
-                value={password}
-                onChange={handlePasswordChange}
+                value={form.password}
+                onChange={handleChange}
+                helperText="Leave blank if you don't want to change the password"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -356,68 +334,22 @@ const RegisterPage = () => {
                     </InputAdornment>
                   ),
                 }}
-                placeholder="Enter password"
+                placeholder="Enter new password (optional)"
               />
 
-              <StyledFormControl fullWidth required>
-                <InputLabel id="role-label">Role</InputLabel>
-                <Select
-                  labelId="role-label"
-                  value={role}
-                  onChange={handleRoleChange}
-                  label="Role"
-                  startAdornment={
-                    <InputAdornment position="start">
-                      {role === 'admin' ? (
-                        <AdminIcon sx={{ color: '#2d9f47', ml: 1 }} />
-                      ) : (
-                        <WorkIcon sx={{ color: '#2d9f47', ml: 1 }} />
-                      )}
-                    </InputAdornment>
-                  }
-                >
-                  <MenuItem value="employee">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <WorkIcon sx={{ fontSize: 20 }} />
-                      Employee
-                    </Box>
-                  </MenuItem>
-                  <MenuItem value="admin">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AdminIcon sx={{ fontSize: 20 }} />
-                      Admin
-                    </Box>
-                  </MenuItem>
-                </Select>
-              </StyledFormControl>
-
-              <RegisterButton variant="contained" type="submit" fullWidth>
-                Create Account
-              </RegisterButton>
-            </Box>
-
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                OR
-              </Typography>
-            </Divider>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <SecondaryButton
-                variant="outlined"
+              <SaveButton 
+                variant="contained" 
+                type="submit" 
                 fullWidth
-                component={Link}
-                to="/edit-user/1"
-                startIcon={<EditIcon />}
+                startIcon={<SaveIcon />}
               >
-
-                Edit User Page
-              </SecondaryButton>
+                Save Changes
+              </SaveButton>
             </Box>
 
             <Box sx={{ mt: 3, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                Secure registration powered by Marabes
+                All changes are saved securely
               </Typography>
             </Box>
           </Box>
@@ -431,6 +363,4 @@ const RegisterPage = () => {
       </Container>
     </Box>
   );
-};
-
-export default RegisterPage;
+}

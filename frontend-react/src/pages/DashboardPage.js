@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import {
   Box,
@@ -115,12 +115,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-
     if (!token) {
       setError('No token found. Please login.');
       return;
     }
-
     axios
       .get('http://localhost:5000/dashboard', {
         headers: { Authorization: `Bearer ${token}` },
@@ -143,21 +141,17 @@ export default function DashboardPage() {
   if (error) {
     return (
       <Container maxWidth="sm" sx={{ mt: 8 }}>
-        <Alert 
-          severity="error" 
-          sx={{ 
-            mb: 2, 
+        <Alert
+          severity="error"
+          sx={{
+            mb: 2,
             borderRadius: 2,
-            boxShadow: '0 4px 12px rgba(211, 47, 47, 0.2)'
+            boxShadow: '0 4px 12px rgba(211, 47, 47, 0.2)',
           }}
         >
           {error}
         </Alert>
-        <ActionButton 
-          variant="contained" 
-          onClick={() => navigate('/login')}
-          fullWidth
-        >
+        <ActionButton variant="contained" onClick={() => navigate('/login')} fullWidth>
           Go to Login
         </ActionButton>
       </Container>
@@ -167,12 +161,14 @@ export default function DashboardPage() {
   if (!data) {
     return (
       <Container maxWidth="sm" sx={{ mt: 8, textAlign: 'center' }}>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center',
-          gap: 2 
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 2,
+          }}
+        >
           <CircularProgress size={60} thickness={4} sx={{ color: '#2d9f47' }} />
           <Typography variant="h6" color="text.secondary">
             Loading your dashboard...
@@ -286,6 +282,18 @@ export default function DashboardPage() {
                   >
                     Logout
                   </ActionButton>
+
+                  <ActionButton
+                    component={Link}
+                    to="/register"
+                    variant="contained"
+                    sx={{
+                      background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                    }}
+                  >
+                    Register New
+                  </ActionButton>
+
                 </Box>
               </Box>
             </StyledPaper>
@@ -317,8 +325,8 @@ export default function DashboardPage() {
                     <InfoCard>
                       <CardContent>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                          <Avatar sx={{ bgcolor: '#2d9f47' }}>
-                            <PersonIcon />
+                          <Avatar sx={{ bgcolor: '#2d9f47' }}>(
+                          <PersonIcon />)
                           </Avatar>
                           <Typography variant="h6" fontWeight="600">
                             Profile Information
@@ -349,13 +357,13 @@ export default function DashboardPage() {
                             <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                               Role
                             </Typography>
-                            <Chip 
-                              label={data.user.role} 
+                            <Chip
+                              label={data.user.role}
                               color="primary"
-                              sx={{ 
+                              sx={{
                                 fontWeight: 600,
                                 textTransform: 'capitalize',
-                                bgcolor: '#2d9f47'
+                                bgcolor: '#2d9f47',
                               }}
                             />
                           </Box>
