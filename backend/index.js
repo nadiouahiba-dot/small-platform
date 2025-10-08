@@ -11,7 +11,6 @@ app.use(express.json());
 
 const SECRET_KEY = 'your-secret-key'; // In production, store in environment variable
 
-// JWT auth middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -25,7 +24,6 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Register route
 app.post('/register', async (req, res) => {
   const { name, email, password, role } = req.body;
   if (!name || !email || !password || !role) {
@@ -48,7 +46,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// Login route
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
   db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
@@ -62,7 +59,6 @@ app.post('/login', (req, res) => {
   });
 });
 
-// Dashboard
 app.get('/dashboard', authenticateToken, (req, res) => {
   const { id, role } = req.user;
   if (role === 'admin') {
@@ -92,7 +88,6 @@ app.get('/dashboard', authenticateToken, (req, res) => {
   }
 });
 
-// Reports
 app.get('/reports', authenticateToken, (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
@@ -103,7 +98,6 @@ app.get('/reports', authenticateToken, (req, res) => {
   });
 });
 
-// Employees
 app.get('/employees', authenticateToken, (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
@@ -114,15 +108,74 @@ app.get('/employees', authenticateToken, (req, res) => {
   });
 });
 
+// ————— New endpoint: get user by ID —————
+app.get('/users/:id', authenticateToken, (req, res) => {
+  const userId = req.params.id;
+  if (req.user.role !== 'admin' && req.user.id !== Number(userId)) {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  db.get(
+    'SELECT id, name, email, role FROM users WHERE id = ?',
+    [userId],
+    (err, user) => {
+      if (err) return res.status(500).json({ message: 'DB error', error: err.message });
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      return res.json(user);
+    }
+  );
+});
+
+// ————— New endpoint: update user —————
+app.put('/users/:id', authenticateToken, async (req, res) => {
+  const userId = req.params.id;
+  const { name, email, password } = req.body;
+  if (req.user.role !== 'admin' && req.user.id !== Number(userId)) {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+
+  const updates = [];
+  const params = [];
+
+  if (name) {
+    updates.push('name = ?');
+    params.push(name);
+  }
+  if (email) {
+    updates.push('email = ?');
+    params.push(email);
+  }
+  if (password) {
+    try {
+      const hashed = await bcrypt.hash(password, 10);
+      updates.push('password = ?');
+      params.push(hashed);
+    } catch (e) {
+      return res.status(500).json({ message: 'Password hashing failed', error: e.message });
+    }
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ message: 'No fields to update' });
+  }
+
+  params.push(userId);
+  const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+
+  db.run(sql, params, function (err) {
+    if (err) {
+      return res.status(500).json({ message: 'Update failed', error: err.message });
+    }
+    return res.json({ message: 'User updated successfully' });
+  });
+});
+
 // Serve React static build
 app.use(express.static(path.join(__dirname, 'frontend-react', 'build')));
 
-// Catch-all: send React’s index.html for any unmatched route
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend-react', 'build', 'index.html'));
 });
 
-// Start server
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`✅ Server running on http://localhost:${port}`);

@@ -20,6 +20,12 @@ import {
   Avatar,
   Chip,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -32,6 +38,7 @@ import {
   AccessTime as TimeIcon,
 } from '@mui/icons-material';
 
+// Styled Components
 const StyledPaper = styled(Paper)(({ theme }) => ({
   background: 'linear-gradient(145deg, #ffffff 0%, #f5f7fa 100%)',
   borderRadius: theme.spacing(2),
@@ -111,6 +118,10 @@ const ActionButton = styled(Button)(({ theme }) => ({
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [editUser, setEditUser] = useState(null);
+  const [editedName, setEditedName] = useState('');
+  const [editedEmail, setEditedEmail] = useState('');
+  const [editedRole, setEditedRole] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -120,12 +131,8 @@ export default function DashboardPage() {
       return;
     }
     axios
-      .get('http://localhost:5000/dashboard', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setData(res.data);
-      })
+      .get('/dashboard', { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => setData(res.data))
       .catch((err) => {
         console.error('Error loading dashboard:', err);
         setError('Failed to load dashboard. Please login again.');
@@ -138,17 +145,56 @@ export default function DashboardPage() {
     navigate('/login');
   };
 
+  // Modify/Delete handlers
+  const handleModify = (user) => {
+    setEditUser(user);
+    setEditedName(user.name);
+    setEditedEmail(user.email);
+    setEditedRole(user.role);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(
+        `/dashboard/users/${editUser.id}`,
+        { name: editedName, email: editedEmail, role: editedRole },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setData((prev) => ({
+        ...prev,
+        recentLogins: prev.recentLogins.map((u) =>
+          u.id === editUser.id ? { ...u, name: editedName, email: editedEmail, role: editedRole } : u
+        ),
+      }));
+      setEditUser(null);
+      alert(res.data.message);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update user');
+    }
+  };
+
+  const handleDelete = async (user) => {
+    if (!window.confirm(`Are you sure you want to delete ${user.name}?`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(`/dashboard/users/${user.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      setData((prev) => ({
+        ...prev,
+        recentLogins: prev.recentLogins.filter((u) => u.id !== user.id),
+      }));
+      alert(res.data.message);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete user');
+    }
+  };
+
   if (error) {
     return (
       <Container maxWidth="sm" sx={{ mt: 8 }}>
-        <Alert
-          severity="error"
-          sx={{
-            mb: 2,
-            borderRadius: 2,
-            boxShadow: '0 4px 12px rgba(211, 47, 47, 0.2)',
-          }}
-        >
+        <Alert severity="error" sx={{ mb: 2, borderRadius: 2, boxShadow: '0 4px 12px rgba(211, 47, 47, 0.2)' }}>
           {error}
         </Alert>
         <ActionButton variant="contained" onClick={() => navigate('/login')} fullWidth>
@@ -161,14 +207,7 @@ export default function DashboardPage() {
   if (!data) {
     return (
       <Container maxWidth="sm" sx={{ mt: 8, textAlign: 'center' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 2,
-          }}
-        >
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <CircularProgress size={60} thickness={4} sx={{ color: '#2d9f47' }} />
           <Typography variant="h6" color="text.secondary">
             Loading your dashboard...
@@ -181,221 +220,186 @@ export default function DashboardPage() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa', py: 4 }}>
       <Container maxWidth="lg">
-        {data.role === 'admin' ? (
-          <>
-            <StyledPaper elevation={0}>
-              <HeaderBox>
-                <Box sx={{ position: 'relative', zIndex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                      <AdminIcon sx={{ fontSize: 32 }} />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h4" fontWeight="700">
-                        Admin Dashboard
-                      </Typography>
-                      <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5 }}>
-                        Welcome back! Here's your overview
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </HeaderBox>
-
-              <Box sx={{ p: 4 }}>
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                  <Grid item xs={12} md={6}>
-                    <StatsCard>
-                      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 64, height: 64 }}>
-                          <PeopleIcon sx={{ fontSize: 32 }} />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="h3" fontWeight="700">
-                            {data.totalEmployees}
-                          </Typography>
-                          <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                            Total Employees
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </StatsCard>
-                  </Grid>
-                </Grid>
-
-                <Divider sx={{ my: 3 }} />
-
-                <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <TimeIcon sx={{ color: '#2d9f47' }} />
-                    <Typography variant="h6" fontWeight="600" color="text.primary">
-                      Recent Login Activity
+        {/* Admin Dashboard */}
+        {data.role === 'admin' && (
+          <StyledPaper elevation={0}>
+            <HeaderBox>
+              <Box sx={{ position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <AdminIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" fontWeight="700">
+                      Admin Dashboard
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5 }}>
+                      Welcome back! Here's your overview
                     </Typography>
                   </Box>
-                  <List sx={{ bgcolor: 'transparent' }}>
-                    {data.recentLogins.map((user, index) => (
-                      <StyledListItem key={index}>
-                        <Avatar sx={{ bgcolor: '#2d9f47', mr: 2 }}>
-                          <PersonIcon />
-                        </Avatar>
-                        <ListItemText
-                          primary={
-                            <Typography variant="body1" fontWeight="600">
-                              {user.name}
-                            </Typography>
-                          }
-                          secondary={
-                            <Typography variant="body2" color="text.secondary">
-                              Last Login: {user.last_login || 'Never logged in'}
-                            </Typography>
-                          }
-                        />
-                      </StyledListItem>
-                    ))}
-                  </List>
-                </Box>
-
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <ActionButton
-                    variant="contained"
-                    onClick={() => navigate('/reports')}
-                    startIcon={<ReportsIcon />}
-                    sx={{
-                      background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-                    }}
-                  >
-                    View Reports
-                  </ActionButton>
-
-                  <ActionButton
-                    variant="outlined"
-                    onClick={handleLogout}
-                    startIcon={<LogoutIcon />}
-                    sx={{
-                      borderColor: '#d32f2f',
-                      color: '#d32f2f',
-                      '&:hover': {
-                        borderColor: '#d32f2f',
-                        bgcolor: 'rgba(211, 47, 47, 0.04)',
-                      },
-                    }}
-                  >
-                    Logout
-                  </ActionButton>
-
-                  <ActionButton
-                    component={Link}
-                    to="/register"
-                    variant="contained"
-                    sx={{
-                      background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-                    }}
-                  >
-                    Register New
-                  </ActionButton>
-
                 </Box>
               </Box>
-            </StyledPaper>
-          </>
-        ) : data.role === 'employee' ? (
-          <>
-            <StyledPaper elevation={0}>
-              <HeaderBox>
-                <Box sx={{ position: 'relative', zIndex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                      <DashboardIcon sx={{ fontSize: 32 }} />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h4" fontWeight="700">
-                        Employee Dashboard
-                      </Typography>
-                      <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5 }}>
-                        Your personal workspace
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </HeaderBox>
+            </HeaderBox>
 
-              <Box sx={{ p: 4 }}>
-                <Grid container spacing={3} sx={{ mb: 3 }}>
-                  <Grid item xs={12} md={6}>
-                    <InfoCard>
-                      <CardContent>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                          <Avatar sx={{ bgcolor: '#2d9f47' }}>(
-                          <PersonIcon />)
-                          </Avatar>
-                          <Typography variant="h6" fontWeight="600">
-                            Profile Information
-                          </Typography>
-                        </Box>
-                        <Divider sx={{ mb: 2 }} />
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-                              Full Name
-                            </Typography>
-                            <Typography variant="body1" fontWeight="500">
-                              {data.user.name}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-                              Email Address
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <EmailIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                              <Typography variant="body1" fontWeight="500">
-                                {data.user.email}
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-                              Role
-                            </Typography>
-                            <Chip
-                              label={data.user.role}
-                              color="primary"
-                              sx={{
-                                fontWeight: 600,
-                                textTransform: 'capitalize',
-                                bgcolor: '#2d9f47',
-                              }}
-                            />
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </InfoCard>
-                  </Grid>
+            <Box sx={{ p: 4 }}>
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} md={6}>
+                  <StatsCard>
+                    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 64, height: 64 }}>
+                        <PeopleIcon sx={{ fontSize: 32 }} />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h3" fontWeight="700">
+                          {data.totalEmployees}
+                        </Typography>
+                        <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                          Total Employees
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </StatsCard>
                 </Grid>
+              </Grid>
 
-                <ActionButton
-                  variant="outlined"
-                  onClick={handleLogout}
-                  startIcon={<LogoutIcon />}
-                  sx={{
-                    borderColor: '#d32f2f',
-                    color: '#d32f2f',
-                    '&:hover': {
-                      borderColor: '#d32f2f',
-                      bgcolor: 'rgba(211, 47, 47, 0.04)',
-                    },
-                  }}
-                >
+              <Divider sx={{ my: 3 }} />
+
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <TimeIcon sx={{ color: '#2d9f47' }} />
+                  <Typography variant="h6" fontWeight="600" color="text.primary">
+                    Recent Login Activity
+                  </Typography>
+                </Box>
+                <List sx={{ bgcolor: 'transparent' }}>
+                  {data.recentLogins.map((user, index) => (
+                    <StyledListItem
+                      key={index}
+                      secondaryAction={
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button variant="outlined" color="primary" size="small" onClick={() => handleModify(user)}>
+                            Modify
+                          </Button>
+                          <Button variant="outlined" color="error" size="small" onClick={() => handleDelete(user)}>
+                            Delete
+                          </Button>
+                        </Box>
+                      }
+                    >
+                      <Avatar sx={{ bgcolor: '#2d9f47', mr: 2 }}>
+                        <PersonIcon />
+                      </Avatar>
+                      <ListItemText
+                        primary={<Typography variant="body1" fontWeight="600">{user.name}</Typography>}
+                        secondary={<Typography variant="body2" color="text.secondary">Last Login: {user.last_login || 'Never logged in'}</Typography>}
+                      />
+                    </StyledListItem>
+                  ))}
+                </List>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <ActionButton variant="contained" onClick={() => navigate('/reports')} startIcon={<ReportsIcon />} sx={{ background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)' }}>
+                  View Reports
+                </ActionButton>
+                <ActionButton variant="outlined" onClick={handleLogout} startIcon={<LogoutIcon />} sx={{ borderColor: '#d32f2f', color: '#d32f2f', '&:hover': { borderColor: '#d32f2f', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}>
                   Logout
                 </ActionButton>
+                <ActionButton component={Link} to="/register" variant="contained" sx={{ background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)' }}>
+                  Register New
+                </ActionButton>
               </Box>
-            </StyledPaper>
-          </>
-        ) : (
+            </Box>
+          </StyledPaper>
+        )}
+
+        {/* Employee Dashboard */}
+        {data.role === 'employee' && (
+          <StyledPaper elevation={0}>
+            <HeaderBox>
+              <Box sx={{ position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <DashboardIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" fontWeight="700">
+                      Employee Dashboard
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5 }}>
+                      Your personal workspace
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </HeaderBox>
+
+            <Box sx={{ p: 4 }}>
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={6}>
+                  <InfoCard>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Avatar sx={{ bgcolor: '#2d9f47' }}>
+                          <PersonIcon />
+                        </Avatar>
+                        <Typography variant="h6" fontWeight="600">
+                          Profile Information
+                        </Typography>
+                      </Box>
+                      <Divider sx={{ mb: 2 }} />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Full Name</Typography>
+                          <Typography variant="body1" fontWeight="500">{data.user.name}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Email Address</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <EmailIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                            <Typography variant="body1" fontWeight="500">{data.user.email}</Typography>
+                          </Box>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Role</Typography>
+                          <Chip label={data.user.role} color="primary" sx={{ fontWeight: 600, textTransform: 'capitalize', bgcolor: '#2d9f47' }} />
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </InfoCard>
+                </Grid>
+              </Grid>
+
+              <ActionButton variant="outlined" onClick={handleLogout} startIcon={<LogoutIcon />} sx={{ borderColor: '#d32f2f', color: '#d32f2f', '&:hover': { borderColor: '#d32f2f', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}>
+                Logout
+              </ActionButton>
+            </Box>
+          </StyledPaper>
+        )}
+
+        {/* Unknown role */}
+        {data.role !== 'admin' && data.role !== 'employee' && (
           <Alert severity="warning" sx={{ borderRadius: 2 }}>
             Unknown role detected
           </Alert>
         )}
+
+        {/* Modify Dialog */}
+        <Dialog open={!!editUser} onClose={() => setEditUser(null)}>
+          <DialogTitle>Modify User</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField label="Name" value={editedName} onChange={(e) => setEditedName(e.target.value)} fullWidth />
+            <TextField label="Email" value={editedEmail} onChange={(e) => setEditedEmail(e.target.value)} fullWidth />
+            <TextField select label="Role" value={editedRole} onChange={(e) => setEditedRole(e.target.value)} fullWidth>
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="employee">Employee</MenuItem>
+            </TextField>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditUser(null)}>Cancel</Button>
+            <Button variant="contained" onClick={handleSaveEdit}>Save</Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );

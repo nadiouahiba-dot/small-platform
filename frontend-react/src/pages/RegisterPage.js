@@ -1,7 +1,7 @@
 // src/pages/RegisterPage.js
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import {
   Box,
@@ -29,7 +29,6 @@ import {
   VisibilityOff,
   AdminPanelSettings as AdminIcon,
   Work as WorkIcon,
-  Edit as EditIcon,
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 
@@ -130,22 +129,6 @@ const RegisterButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const SecondaryButton = styled(Button)(({ theme }) => ({
-  borderRadius: theme.spacing(3),
-  padding: theme.spacing(1.2, 3),
-  textTransform: 'none',
-  fontWeight: 600,
-  fontSize: '0.95rem',
-  borderColor: '#2d9f47',
-  color: '#2d9f47',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    borderColor: '#1a7a35',
-    backgroundColor: 'rgba(45, 159, 71, 0.04)',
-    transform: 'translateY(-1px)',
-  },
-}));
-
 const LogoAvatar = styled(Avatar)(({ theme }) => ({
   width: 80,
   height: 80,
@@ -209,13 +192,8 @@ const RegisterPage = () => {
     }
   };
 
-  const handleClickShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const handleBack = () => {
-    navigate(-1);
-  };
+  const handleClickShowPassword = () => setShowPassword(!showPassword);
+  const handleBack = () => navigate(-1);
 
   return (
     <Box
@@ -232,12 +210,14 @@ const RegisterPage = () => {
         <StyledPaper elevation={0}>
           <HeaderBox>
             <Box sx={{ position: 'relative', zIndex: 1 }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start',
-                mb: 2
-              }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  mb: 2,
+                }}
+              >
                 <Box sx={{ flex: 1 }} />
                 <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                   <LogoAvatar>
@@ -258,33 +238,25 @@ const RegisterPage = () => {
                 Create Account
               </Typography>
               <Typography variant="body1" sx={{ opacity: 0.9 }} textAlign="center">
-                Register a new user 
+                Register a new user to get started
               </Typography>
             </Box>
           </HeaderBox>
 
           <Box sx={{ p: 4 }}>
             {error && (
-              <Alert 
-                severity="error" 
-                sx={{ 
-                  mb: 3, 
-                  borderRadius: 2,
-                  boxShadow: '0 4px 12px rgba(211, 47, 47, 0.15)'
-                }}
+              <Alert
+                severity="error"
+                sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(211, 47, 47, 0.15)' }}
               >
                 {error}
               </Alert>
             )}
 
             {success && (
-              <Alert 
-                severity="success" 
-                sx={{ 
-                  mb: 3, 
-                  borderRadius: 2,
-                  boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)'
-                }}
+              <Alert
+                severity="success"
+                sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)' }}
               >
                 Registration successful! User has been created.
               </Alert>
@@ -401,19 +373,6 @@ const RegisterPage = () => {
                 OR
               </Typography>
             </Divider>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <SecondaryButton
-                variant="outlined"
-                fullWidth
-                component={Link}
-                to="/edit-user/1"
-                startIcon={<EditIcon />}
-              >
-
-                Edit User Page
-              </SecondaryButton>
-            </Box>
 
             <Box sx={{ mt: 3, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">
