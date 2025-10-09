@@ -21,8 +21,9 @@ import {
   Drawer,
   InputBase,
   Badge,
-  Avatar,
   Stack,
+  Chip,
+  Card,
 } from '@mui/material';
 import {
   PictureAsPdf as PictureAsPdfIcon,
@@ -32,36 +33,78 @@ import {
   Search as SearchIcon,
   Notifications as NotificationsIcon,
   ArrowBack as ArrowBackIcon,
+  Assessment as ReportsIcon,
+  Dashboard as DashboardIcon,
+  FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useNavigate, Link } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:5000/api';
-const drawerWidth = 220;
+const drawerWidth = 260;
 
-// ====== STYLES ======
+// ====== ENHANCED STYLES (matching Dashboard) ======
 const SidebarButton = styled(Button)(({ theme }) => ({
   justifyContent: 'flex-start',
-  color: 'white',
-  marginBottom: theme.spacing(1.5),
-  borderRadius: theme.spacing(2),
+  color: 'rgba(255, 255, 255, 0.9)',
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.spacing(1.5),
   padding: theme.spacing(1.5, 2),
-  background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
   textTransform: 'none',
-  fontWeight: 600,
+  fontWeight: 500,
+  fontSize: '0.95rem',
+  transition: 'all 0.3s ease',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: '3px',
+    background: '#2d9f47',
+    transform: 'scaleY(0)',
+    transition: 'transform 0.3s ease',
+  },
   '&:hover': {
-    background: 'linear-gradient(135deg, #1a7a35 0%, #2d9f47 100%)',
+    backgroundColor: 'rgba(45, 159, 71, 0.15)',
+    color: '#ffffff',
+    paddingLeft: theme.spacing(2.5),
+    '&::before': {
+      transform: 'scaleY(1)',
+    },
   },
 }));
 
 const ExportButton = styled(Button)(({ theme }) => ({
-  borderRadius: theme.spacing(3),
-  padding: theme.spacing(1.2, 3),
+  borderRadius: theme.spacing(2),
+  padding: theme.spacing(1.5, 3),
   textTransform: 'none',
   fontWeight: 600,
   fontSize: '0.95rem',
-  transition: 'all 0.3s ease',
-  '&:hover': { transform: 'translateY(-2px)' },
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  '&:hover': { 
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)',
+  },
+}));
+
+const GlassCard = styled(Card)(({ theme }) => ({
+  background: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(20px)',
+  borderRadius: theme.spacing(3),
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: '#f0f9f4',
+    transform: 'scale(1.01)',
+  },
 }));
 
 export default function ReportsPage() {
@@ -104,6 +147,15 @@ export default function ReportsPage() {
     navigate('/admin-dashboard');
   };
 
+  // ====== EXPORT FUNCTIONS ======
+  const formatDate = (dateStr) =>
+    dateStr
+      ? new Date(dateStr).toLocaleString('en-GB', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })
+      : 'Never logged in';
+
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.text('Employees Report', 14, 15);
@@ -114,7 +166,7 @@ export default function ReportsPage() {
         e.name,
         e.role,
         e.email,
-        e.last_login || 'Never',
+        formatDate(e.last_login),
       ]),
     });
     doc.save('employees-report.pdf');
@@ -127,7 +179,7 @@ export default function ReportsPage() {
         e.name,
         e.role,
         e.email,
-        e.last_login || 'Never',
+        formatDate(e.last_login),
       ]),
     ];
     const blob = new Blob([rows.map((r) => r.join(',')).join('\n')], {
@@ -139,11 +191,24 @@ export default function ReportsPage() {
     a.click();
   };
 
+  // ====== CONDITIONAL RENDER ======
   if (error) {
     return (
       <Box sx={{ p: 4 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-        <Button variant="contained" onClick={() => navigate('/login')}>
+        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+          {error}
+        </Alert>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate('/login')}
+          sx={{
+            background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+            textTransform: 'none',
+            px: 3,
+            py: 1.5,
+            borderRadius: 2,
+          }}
+        >
           Go to Login
         </Button>
       </Box>
@@ -159,19 +224,21 @@ export default function ReportsPage() {
           justifyContent: 'center',
           alignItems: 'center',
           flexDirection: 'column',
+          background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
         }}
       >
-        <CircularProgress size={60} thickness={4} sx={{ color: '#2d9f47' }} />
-        <Typography variant="h6" sx={{ mt: 2 }}>
+        <CircularProgress size={60} thickness={4} sx={{ color: 'white' }} />
+        <Typography variant="h6" sx={{ mt: 3, color: 'white', fontWeight: 500 }}>
           Loading reports...
         </Typography>
       </Box>
     );
   }
 
+  // ====== MAIN PAGE ======
   return (
-    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f7fa' }}>
-      {/* ===== SIDEBAR (ORIGINAL COLOR) ===== */}
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f7fb' }}>
+      {/* ===== SIDEBAR ===== */}
       <Drawer
         variant="permanent"
         sx={{
@@ -180,24 +247,57 @@ export default function ReportsPage() {
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
             boxSizing: 'border-box',
-            bgcolor: '#1a3a52',
+            background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
             color: 'white',
-            p: 2,
+            p: 3,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
+            borderRight: '1px solid rgba(255, 255, 255, 0.1)',
           },
         }}
       >
         <Box>
-          <Typography
-            variant="h6"
-            sx={{ textAlign: 'center', mb: 3, fontWeight: 700 }}
-          >
-            Reports
-          </Typography>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                boxShadow: '0 8px 24px rgba(45, 159, 71, 0.4)',
+              }}
+            >
+              <ReportsIcon sx={{ fontSize: 32, color: 'white' }} />
+            </Box>
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: 700, letterSpacing: '-0.5px' }}
+            >
+              Reports
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}
+            >
+              Management System
+            </Typography>
+          </Box>
 
-          {/* Removed “View Reports” */}
+          <Box sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', pt: 3, mb: 3 }} />
+
+          <SidebarButton
+            fullWidth
+            startIcon={<DashboardIcon />}
+            onClick={handleBack}
+          >
+            Dashboard
+          </SidebarButton>
+
           <SidebarButton
             fullWidth
             startIcon={<PeopleIcon />}
@@ -208,21 +308,48 @@ export default function ReportsPage() {
           </SidebarButton>
         </Box>
 
-        <Box sx={{ textAlign: 'center', opacity: 0.6, fontSize: 13 }}>
-          © 2025 Admin Panel
+        <Box>
+          <Box sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', pt: 2, mb: 2 }} />
+          <Typography sx={{ textAlign: 'center', opacity: 0.5, fontSize: 12 }}>
+            © 2025 Admin Panel
+          </Typography>
+          <Typography sx={{ textAlign: 'center', opacity: 0.4, fontSize: 11, mt: 0.5 }}>
+            v2.0.1
+          </Typography>
         </Box>
       </Drawer>
 
       {/* ===== MAIN CONTENT ===== */}
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         {/* ===== HEADER ===== */}
-        <AppBar position="static" sx={{ bgcolor: '#2d9f47', px: 2 }}>
-          <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <AppBar 
+          position="static" 
+          elevation={0}
+          sx={{ 
+            background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <IconButton color="inherit" onClick={handleBack}>
+              <IconButton 
+                color="inherit" 
+                onClick={handleBack}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                }}
+              >
                 <ArrowBackIcon />
               </IconButton>
-              <Typography variant="h6">Employee Reports</Typography>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 600, letterSpacing: '-0.5px' }}>
+                  Employee Reports
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </Typography>
+              </Box>
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -230,23 +357,45 @@ export default function ReportsPage() {
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  borderRadius: 2,
-                  px: 1.5,
-                  py: 0.5,
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: 3,
+                  px: 2,
+                  py: 0.75,
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                 }}
               >
-                <SearchIcon />
-                <InputBase placeholder="Search..." sx={{ ml: 1, color: 'white' }} />
+                <SearchIcon sx={{ opacity: 0.8 }} />
+                <InputBase 
+                  placeholder="Search..." 
+                  sx={{ 
+                    ml: 1, 
+                    color: 'white',
+                    '::placeholder': { opacity: 0.8 }
+                  }} 
+                />
               </Box>
 
-              <IconButton color="inherit">
+              <IconButton 
+                color="inherit"
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                }}
+              >
                 <Badge badgeContent={2} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
 
-              <IconButton color="inherit" onClick={handleLogout}>
+              <IconButton 
+                color="inherit" 
+                onClick={handleLogout}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                }}
+              >
                 <LogoutIcon />
               </IconButton>
             </Box>
@@ -255,16 +404,56 @@ export default function ReportsPage() {
 
         {/* ===== BODY ===== */}
         <Box sx={{ flexGrow: 1, p: 4, overflowY: 'auto' }}>
-          <Box sx={{ mb: 3, p: 3, bgcolor: '#f8faf9', borderRadius: 2 }}>
-            <Typography variant="h6" fontWeight="600" sx={{ mb: 2 }}>
-              Export Options
-            </Typography>
+          {/* Export Options Card */}
+          <GlassCard sx={{ p: 3, mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <FileDownloadIcon sx={{ color: 'white', fontSize: 24 }} />
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight="600" color="text.primary">
+                    Export Options
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Download reports in your preferred format
+                  </Typography>
+                </Box>
+              </Box>
+              <Chip 
+                label={`${employees.length} Employees`}
+                sx={{
+                  background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  height: 36,
+                }}
+              />
+            </Box>
+
             <Stack direction="row" spacing={2}>
               <ExportButton
                 variant="contained"
                 startIcon={<PictureAsPdfIcon />}
                 onClick={exportToPDF}
-                sx={{ background: '#2d9f47', color: 'white' }}
+                sx={{ 
+                  background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                  color: 'white',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #1a7a35 0%, #2d9f47 100%)',
+                  }
+                }}
               >
                 Export to PDF
               </ExportButton>
@@ -273,43 +462,82 @@ export default function ReportsPage() {
                 variant="outlined"
                 startIcon={<CsvIcon />}
                 onClick={exportToCSV}
-                sx={{ borderColor: '#2d9f47', color: '#2d9f47' }}
+                sx={{ 
+                  borderColor: '#2d9f47', 
+                  color: '#2d9f47',
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderWidth: 2,
+                    backgroundColor: 'rgba(45, 159, 71, 0.05)',
+                  }
+                }}
               >
                 Export to CSV
               </ExportButton>
             </Stack>
-          </Box>
+          </GlassCard>
 
-          <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#2d9f47' }}>
-                <TableRow>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Name</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Role</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Email</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Last Login</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {employees.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center">
-                      No employees found
+          {/* Table Card */}
+          <GlassCard sx={{ overflow: 'hidden' }}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)' }}>
+                    <TableCell sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
+                      Name
+                    </TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
+                      Role
+                    </TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
+                      Email
+                    </TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
+                      Last Login
                     </TableCell>
                   </TableRow>
-                ) : (
-                  employees.map((emp) => (
-                    <TableRow key={emp.id} hover>
-                      <TableCell>{emp.name}</TableCell>
-                      <TableCell>{emp.role}</TableCell>
-                      <TableCell>{emp.email}</TableCell>
-                      <TableCell>{emp.last_login || 'Never'}</TableCell>
+                </TableHead>
+                <TableBody>
+                  {employees.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                        <PeopleIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
+                        <Typography color="text.secondary" sx={{ fontSize: '1.05rem' }}>
+                          No employees found
+                        </Typography>
+                      </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  ) : (
+                    employees.map((emp) => (
+                      <StyledTableRow key={emp.id}>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                          {emp.name}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.95rem' }}>
+                          <Chip 
+                            label={emp.role}
+                            size="small"
+                            sx={{
+                              bgcolor: emp.role === 'admin' ? 'rgba(45, 159, 71, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+                              color: emp.role === 'admin' ? '#2d9f47' : 'text.secondary',
+                              fontWeight: 600,
+                              textTransform: 'capitalize',
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.95rem', color: 'text.secondary' }}>
+                          {emp.email}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.95rem', color: 'text.secondary' }}>
+                          {formatDate(emp.last_login)}
+                        </TableCell>
+                      </StyledTableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </GlassCard>
         </Box>
       </Box>
     </Box>

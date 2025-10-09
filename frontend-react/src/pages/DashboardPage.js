@@ -21,6 +21,7 @@ import {
   Drawer,
   InputBase,
   Badge,
+  Chip,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -32,50 +33,97 @@ import {
   Notifications as NotificationsIcon,
   Email as EmailIcon,
   Work as WorkIcon,
+  Dashboard as DashboardIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
 const BASE_URL = 'http://localhost:5000/api';
-const drawerWidth = 220;
+const drawerWidth = 260;
 
-// ====== STYLES ======
+// ====== ENHANCED STYLES ======
 const StatsCard = styled(Card)(({ theme }) => ({
   background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
   color: 'white',
-  borderRadius: theme.spacing(2),
-  boxShadow: '0 4px 20px rgba(45, 159, 71, 0.3)',
-  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  borderRadius: theme.spacing(3),
+  boxShadow: '0 8px 32px rgba(45, 159, 71, 0.25)',
+  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+  overflow: 'hidden',
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
+    opacity: 0,
+    transition: 'opacity 0.4s ease',
+  },
   '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: '0 8px 30px rgba(45, 159, 71, 0.4)',
+    transform: 'translateY(-8px)',
+    boxShadow: '0 16px 48px rgba(45, 159, 71, 0.35)',
+    '&::before': {
+      opacity: 1,
+    },
   },
 }));
 
 const StyledListItem = styled(ListItem)(({ theme }) => ({
-  borderRadius: theme.spacing(1),
-  marginBottom: theme.spacing(1),
+  borderRadius: theme.spacing(2),
+  marginBottom: theme.spacing(1.5),
   backgroundColor: '#ffffff',
-  border: '1px solid #e0e0e0',
-  transition: 'all 0.3s ease',
+  border: '1px solid rgba(0, 0, 0, 0.08)',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
   '&:hover': {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0f9f4',
     borderColor: '#2d9f47',
-    transform: 'translateX(4px)',
+    transform: 'translateX(8px)',
+    boxShadow: '0 4px 16px rgba(45, 159, 71, 0.15)',
   },
 }));
 
 const SidebarButton = styled(Button)(({ theme }) => ({
   justifyContent: 'flex-start',
-  color: 'white',
-  marginBottom: theme.spacing(1.5),
-  borderRadius: theme.spacing(2),
+  color: 'rgba(255, 255, 255, 0.9)',
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.spacing(1.5),
   padding: theme.spacing(1.5, 2),
-  background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
   textTransform: 'none',
-  fontWeight: 600,
-  '&:hover': {
-    background: 'linear-gradient(135deg, #1a7a35 0%, #2d9f47 100%)',
+  fontWeight: 500,
+  fontSize: '0.95rem',
+  transition: 'all 0.3s ease',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    width: '3px',
+    background: '#2d9f47',
+    transform: 'scaleY(0)',
+    transition: 'transform 0.3s ease',
   },
+  '&:hover': {
+    backgroundColor: 'rgba(45, 159, 71, 0.15)',
+    color: '#ffffff',
+    paddingLeft: theme.spacing(2.5),
+    '&::before': {
+      transform: 'scaleY(1)',
+    },
+  },
+}));
+
+const GlassCard = styled(Card)(({ theme }) => ({
+  background: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(20px)',
+  borderRadius: theme.spacing(3),
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
 }));
 
 export default function DashboardPage() {
@@ -110,8 +158,18 @@ export default function DashboardPage() {
   if (error) {
     return (
       <Box sx={{ p: 4 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-        <Button variant="contained" onClick={() => navigate('/login')}>
+        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate('/login')}
+          sx={{
+            background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+            textTransform: 'none',
+            px: 3,
+            py: 1.5,
+            borderRadius: 2,
+          }}
+        >
           Go to Login
         </Button>
       </Box>
@@ -127,10 +185,11 @@ export default function DashboardPage() {
           justifyContent: 'center',
           alignItems: 'center',
           flexDirection: 'column',
+          background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
         }}
       >
-        <CircularProgress size={60} thickness={4} sx={{ color: '#2d9f47' }} />
-        <Typography variant="h6" sx={{ mt: 2 }}>
+        <CircularProgress size={60} thickness={4} sx={{ color: 'white' }} />
+        <Typography variant="h6" sx={{ mt: 3, color: 'white', fontWeight: 500 }}>
           Loading your dashboard...
         </Typography>
       </Box>
@@ -141,7 +200,7 @@ export default function DashboardPage() {
     Array.isArray(data.recentLogins) && data.recentLogins.length > 0;
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f7fa' }}>
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f7fb' }}>
       {/* SIDEBAR */}
       <Drawer
         variant="permanent"
@@ -151,22 +210,48 @@ export default function DashboardPage() {
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
             boxSizing: 'border-box',
-            bgcolor: '#1a3a52',
+            background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
             color: 'white',
-            p: 2,
+            p: 3,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
+            borderRight: '1px solid rgba(255, 255, 255, 0.1)',
           },
         }}
       >
         <Box>
-          <Typography
-            variant="h6"
-            sx={{ textAlign: 'center', mb: 3, fontWeight: 700 }}
-          >
-            Dashboard
-          </Typography>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Box
+              sx={{
+                width: 60,
+                height: 60,
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                boxShadow: '0 8px 24px rgba(45, 159, 71, 0.4)',
+              }}
+            >
+              <DashboardIcon sx={{ fontSize: 32, color: 'white' }} />
+            </Box>
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: 700, letterSpacing: '-0.5px' }}
+            >
+              Dashboard
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}
+            >
+              Management System
+            </Typography>
+          </Box>
+
+          <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', mb: 3 }} />
 
           {/* Show buttons only for admin */}
           {role === 'admin' && (
@@ -191,40 +276,80 @@ export default function DashboardPage() {
           )}
         </Box>
 
-        <Box sx={{ textAlign: 'center', opacity: 0.6, fontSize: 13 }}>
-          © 2025 Admin Panel
+        <Box>
+          <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', mb: 2 }} />
+          <Typography sx={{ textAlign: 'center', opacity: 0.5, fontSize: 12 }}>
+            © 2025 Admin Panel
+          </Typography>
+          <Typography sx={{ textAlign: 'center', opacity: 0.4, fontSize: 11, mt: 0.5 }}>
+            v2.0.1
+          </Typography>
         </Box>
       </Drawer>
 
       {/* MAIN CONTENT */}
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <AppBar position="static" sx={{ bgcolor: '#2d9f47', px: 2 }}>
-          <Toolbar sx={{ justifyContent: 'space-between' }}>
-            <Typography variant="h6">
-              {role === 'admin' ? 'Admin Dashboard' : 'Employee Dashboard'}
-            </Typography>
+        <AppBar 
+          position="static" 
+          elevation={0}
+          sx={{ 
+            background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, letterSpacing: '-0.5px' }}>
+                {role === 'admin' ? 'Admin Dashboard' : 'Employee Dashboard'}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </Typography>
+            </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  borderRadius: 2,
-                  px: 1.5,
-                  py: 0.5,
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: 3,
+                  px: 2,
+                  py: 0.75,
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                 }}
               >
-                <SearchIcon />
-                <InputBase placeholder="Search..." sx={{ ml: 1, color: 'white' }} />
+                <SearchIcon sx={{ opacity: 0.8 }} />
+                <InputBase 
+                  placeholder="Search..." 
+                  sx={{ 
+                    ml: 1, 
+                    color: 'white',
+                    '::placeholder': { opacity: 0.8 }
+                  }} 
+                />
               </Box>
 
-              <IconButton color="inherit">
+              <IconButton 
+                color="inherit"
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                }}
+              >
                 <Badge badgeContent={2} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
 
-              <IconButton color="inherit" onClick={handleLogout}>
+              <IconButton 
+                color="inherit" 
+                onClick={handleLogout}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                }}
+              >
                 <LogoutIcon />
               </IconButton>
             </Box>
@@ -239,110 +364,260 @@ export default function DashboardPage() {
               <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={6}>
                   <StatsCard>
-                    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar
+                    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 3, p: 3 }}>
+                      <Box
                         sx={{
-                          bgcolor: 'rgba(255,255,255,0.2)',
-                          width: 64,
-                          height: 64,
+                          width: 80,
+                          height: 80,
+                          borderRadius: '20px',
+                          background: 'rgba(255,255,255,0.2)',
+                          backdropFilter: 'blur(10px)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
                       >
-                        <PeopleIcon sx={{ fontSize: 32 }} />
-                      </Avatar>
+                        <PeopleIcon sx={{ fontSize: 40 }} />
+                      </Box>
                       <Box>
-                        <Typography variant="h3" fontWeight="700">
+                        <Typography variant="h2" fontWeight="700" sx={{ letterSpacing: '-1px' }}>
                           {data.totalEmployees || 0}
                         </Typography>
-                        <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                        <Typography variant="h6" sx={{ opacity: 0.95, fontWeight: 500 }}>
                           Total Employees
                         </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                          <TrendingUpIcon sx={{ fontSize: 16 }} />
+                          <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                            Active workforce
+                          </Typography>
+                        </Box>
                       </Box>
                     </CardContent>
                   </StatsCard>
                 </Grid>
               </Grid>
 
-              <Divider sx={{ my: 3 }} />
-
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <TimeIcon sx={{ color: '#2d9f47' }} />
-                  <Typography variant="h6" fontWeight="600" color="text.primary">
-                    Recent Login Activity
-                  </Typography>
+              <GlassCard sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <TimeIcon sx={{ color: 'white', fontSize: 24 }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h5" fontWeight="600" color="text.primary">
+                        Recent Login Activity
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
+                        Latest user sessions
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Chip 
+                    label={`${hasLogins ? data.recentLogins.length : 0} Active`}
+                    sx={{
+                      background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      height: 36,
+                    }}
+                  />
                 </Box>
 
                 {hasLogins ? (
                   <List sx={{ bgcolor: 'transparent' }}>
                     {data.recentLogins.map((user, index) => (
                       <StyledListItem key={index}>
-                        <Avatar sx={{ bgcolor: '#2d9f47', mr: 2 }}>
+                        <Avatar 
+                          sx={{ 
+                            background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                            mr: 2,
+                            width: 48,
+                            height: 48,
+                          }}
+                        >
                           <PersonIcon />
                         </Avatar>
                         <ListItemText
-                          primary={<Typography fontWeight="600">{user.name}</Typography>}
-                          secondary={
-                            <Typography variant="body2" color="text.secondary">
-                              Last Login: {user.last_login || 'Never logged in'}
+                          primary={
+                            <Typography fontWeight="600" sx={{ fontSize: '1.1rem' }}>
+                              {user.name}
                             </Typography>
+                          }
+                          secondary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                              <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
+                                {user.last_login
+                                  ? new Date(user.last_login).toLocaleString('en-GB', {
+                                      dateStyle: 'medium',
+                                      timeStyle: 'short',
+                                    })
+                                  : 'Never logged in'}
+                              </Typography>
+                            </Box>
                           }
                         />
                       </StyledListItem>
                     ))}
                   </List>
                 ) : (
-                  <Typography color="text.secondary">
-                    No recent logins available.
-                  </Typography>
+                  <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <TimeIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
+                    <Typography color="text.secondary" sx={{ fontSize: '1.05rem' }}>
+                      No recent logins available.
+                    </Typography>
+                  </Box>
                 )}
-              </Box>
+              </GlassCard>
             </>
           ) : (
             /* EMPLOYEE VIEW */
-            <Box sx={{ maxWidth: 500, mx: 'auto', mt: 6 }}>
-              <Card
-                sx={{
-                  p: 4,
-                  borderRadius: 3,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                  textAlign: 'center',
-                }}
-              >
-                <Avatar
-                  sx={{
-                    bgcolor: '#2d9f47',
-                    width: 80,
-                    height: 80,
-                    mx: 'auto',
-                    mb: 2,
-                  }}
-                >
-                  <PersonIcon sx={{ fontSize: 40 }} />
-                </Avatar>
+            <Box sx={{ maxWidth: 600, mx: 'auto', mt: 6 }}>
+              <GlassCard sx={{ p: 5 }}>
+                <Box sx={{ textAlign: 'center', mb: 4 }}>
+                  <Box
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      borderRadius: '24px',
+                      background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 24px',
+                      boxShadow: '0 12px 32px rgba(45, 159, 71, 0.3)',
+                    }}
+                  >
+                    <PersonIcon sx={{ fontSize: 50, color: 'white' }} />
+                  </Box>
 
-                <Typography variant="h5" fontWeight="700" sx={{ mb: 1 }}>
-                  Welcome, {data.name || 'Employee'} 👋
-                </Typography>
-
-                <Typography color="text.secondary" sx={{ mb: 3 }}>
-                  Glad to have you on board!
-                </Typography>
-
-                <Box sx={{ textAlign: 'left' }}>
-                  <Typography sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <PersonIcon sx={{ color: '#2d9f47', mr: 1 }} /> Name:{' '}
-                    <strong style={{ marginLeft: 5 }}>{data.name}</strong>
+                  <Typography variant="h4" fontWeight="700" sx={{ mb: 1, letterSpacing: '-0.5px' }}>
+                    Welcome Back! 👋
                   </Typography>
-                  <Typography sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <EmailIcon sx={{ color: '#2d9f47', mr: 1 }} /> Email:{' '}
-                    <strong style={{ marginLeft: 5 }}>{data.email}</strong>
+
+                  <Typography variant="h6" color="text.primary" sx={{ mb: 1, fontWeight: 500 }}>
+                    {data.name || 'Employee'}
                   </Typography>
-                  <Typography sx={{ display: 'flex', alignItems: 'center' }}>
-                    <WorkIcon sx={{ color: '#2d9f47', mr: 1 }} /> Role:{' '}
-                    <strong style={{ marginLeft: 5 }}>{data.role}</strong>
+
+                  <Typography color="text.secondary" sx={{ mb: 4, fontSize: '1.05rem' }}>
+                    Glad to have you on board today
                   </Typography>
                 </Box>
-              </Card>
+
+                <Divider sx={{ mb: 3 }} />
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(45, 159, 71, 0.05)',
+                      border: '1px solid rgba(45, 159, 71, 0.1)',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mr: 2,
+                      }}
+                    >
+                      <PersonIcon sx={{ color: 'white', fontSize: 20 }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.8rem' }}>
+                        Name
+                      </Typography>
+                      <Typography fontWeight="600" sx={{ fontSize: '1.05rem' }}>{data.name}</Typography>
+                    </Box>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(45, 159, 71, 0.05)',
+                      border: '1px solid rgba(45, 159, 71, 0.1)',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mr: 2,
+                      }}
+                    >
+                      <EmailIcon sx={{ color: 'white', fontSize: 20 }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.8rem' }}>
+                        Email
+                      </Typography>
+                      <Typography fontWeight="600" sx={{ fontSize: '1.05rem' }}>{data.email}</Typography>
+                    </Box>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(45, 159, 71, 0.05)',
+                      border: '1px solid rgba(45, 159, 71, 0.1)',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mr: 2,
+                      }}
+                    >
+                      <WorkIcon sx={{ color: 'white', fontSize: 20 }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.8rem' }}>
+                        Role
+                      </Typography>
+                      <Typography fontWeight="600" sx={{ textTransform: 'capitalize', fontSize: '1.05rem' }}>
+                        {data.role}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </GlassCard>
             </Box>
           )}
         </Box>
