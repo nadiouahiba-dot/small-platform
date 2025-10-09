@@ -121,10 +121,11 @@ export default function LoginPage() {
     setErrorMsg('');
     try {
       // Use relative URL here
-      const response = await axios.post('/login', {
-        email,
-        password,
-      });
+      const response = await axios.post('http://localhost:5000/api/login', {
+       email,
+      password,
+});
+
       const { token, role } = response.data;
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
