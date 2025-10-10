@@ -61,10 +61,15 @@ router.get('/dashboard', authenticateToken, (req, res) => {
         }
         if (!rows.length) return res.status(404).json({ message: 'User not found' });
 
+        // 🔥 Main update: send flat object instead of nested "user"
+        const user = rows[0];
         return res.json({
-          role: 'employee',
-          user: rows[0],
-          message: `Welcome ${rows[0].name}`,
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          last_login: user.last_login,
+          message: `Welcome ${user.name}`,
         });
       }
     );

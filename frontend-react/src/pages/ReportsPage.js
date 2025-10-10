@@ -1,3 +1,4 @@
+// src/pages/ReportsPage.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -14,7 +15,6 @@ import {
   TableRow,
   TableCell,
   TableContainer,
-  Paper,
   AppBar,
   Toolbar,
   IconButton,
@@ -33,17 +33,17 @@ import {
   Search as SearchIcon,
   Notifications as NotificationsIcon,
   ArrowBack as ArrowBackIcon,
-  Assessment as ReportsIcon,
   Dashboard as DashboardIcon,
   FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useNavigate, Link } from 'react-router-dom';
+import MarabesLogo from '../assets/marabes-logo.png'; // ✅ your logo
 
 const BASE_URL = 'http://localhost:5000/api';
 const drawerWidth = 260;
 
-// ====== ENHANCED STYLES (matching Dashboard) ======
+// ====== SHARED STYLES ======
 const SidebarButton = styled(Button)(({ theme }) => ({
   justifyContent: 'flex-start',
   color: 'rgba(255, 255, 255, 0.9)',
@@ -85,7 +85,7 @@ const ExportButton = styled(Button)(({ theme }) => ({
   fontSize: '0.95rem',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-  '&:hover': { 
+  '&:hover': {
     transform: 'translateY(-2px)',
     boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)',
   },
@@ -147,7 +147,7 @@ export default function ReportsPage() {
     navigate('/admin-dashboard');
   };
 
-  // ====== EXPORT FUNCTIONS ======
+  // ====== EXPORTS ======
   const formatDate = (dateStr) =>
     dateStr
       ? new Date(dateStr).toLocaleString('en-GB', {
@@ -191,15 +191,14 @@ export default function ReportsPage() {
     a.click();
   };
 
-  // ====== CONDITIONAL RENDER ======
   if (error) {
     return (
       <Box sx={{ p: 4 }}>
         <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
           {error}
         </Alert>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           onClick={() => navigate('/login')}
           sx={{
             background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
@@ -235,9 +234,47 @@ export default function ReportsPage() {
     );
   }
 
-  // ====== MAIN PAGE ======
   return (
-    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f7fb' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        height: '100vh',
+        bgcolor: '#f5f7fb',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* ✅ Animated background logo */}
+      <Box
+        component="img"
+        src={MarabesLogo}
+        alt="Marabes background"
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%) scale(1)',
+          width: '1200px',
+          opacity: 0.08,
+          filter:
+            'blur(14px) grayscale(100%) drop-shadow(0px 0px 25px rgba(0,0,0,0.15))',
+          pointerEvents: 'none',
+          zIndex: 0,
+          animation: 'zoomFade 20s ease-in-out infinite',
+          '@keyframes zoomFade': {
+            '0%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.08 },
+            '50%': {
+              transform: 'translate(-50%, -50%) scale(1.08)',
+              opacity: 0.1,
+            },
+            '100%': {
+              transform: 'translate(-50%, -50%) scale(1)',
+              opacity: 0.08,
+            },
+          },
+        }}
+      />
+
       {/* ===== SIDEBAR ===== */}
       <Drawer
         variant="permanent"
@@ -254,62 +291,69 @@ export default function ReportsPage() {
             flexDirection: 'column',
             justifyContent: 'space-between',
             borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(12px)',
           },
         }}
       >
         <Box>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
+            {/* ✅ Replaced ReportsIcon with logo */}
             <Box
               sx={{
-                width: 60,
-                height: 60,
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                width: 80,
+                height: 80,
+                borderRadius: '24px',
+                overflow: 'hidden',
+                margin: '0 auto 16px',
+                boxShadow: '0 8px 24px rgba(45, 159, 71, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 16px',
-                boxShadow: '0 8px 24px rgba(45, 159, 71, 0.4)',
+                background:
+                  'radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 70%)',
+                border: '2px solid rgba(255, 255, 255, 0.25)',
               }}
             >
-              <ReportsIcon sx={{ fontSize: 32, color: 'white' }} />
+              <Box
+                component="img"
+                src={MarabesLogo}
+                alt="Marabes Logo"
+                sx={{
+                  width: '70%',
+                  height: '70%',
+                  objectFit: 'cover',
+                  borderRadius: '50%',
+                }}
+              />
             </Box>
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: 700, letterSpacing: '-0.5px' }}
-            >
+            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '-0.5px' }}>
               Reports
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}
+              sx={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+              }}
             >
               Management System
             </Typography>
           </Box>
 
-          <Box sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', pt: 3, mb: 3 }} />
+          <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.1)', pt: 3, mb: 3 }} />
 
-          <SidebarButton
-            fullWidth
-            startIcon={<DashboardIcon />}
-            onClick={handleBack}
-          >
+          <SidebarButton fullWidth startIcon={<DashboardIcon />} onClick={handleBack}>
             Dashboard
           </SidebarButton>
 
-          <SidebarButton
-            fullWidth
-            startIcon={<PeopleIcon />}
-            component={Link}
-            to="/register"
-          >
+          <SidebarButton fullWidth startIcon={<PeopleIcon />} component={Link} to="/register">
             Register New
           </SidebarButton>
         </Box>
 
         <Box>
-          <Box sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', pt: 2, mb: 2 }} />
+          <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.1)', pt: 2, mb: 2 }} />
           <Typography sx={{ textAlign: 'center', opacity: 0.5, fontSize: 12 }}>
             © 2025 Admin Panel
           </Typography>
@@ -320,24 +364,23 @@ export default function ReportsPage() {
       </Drawer>
 
       {/* ===== MAIN CONTENT ===== */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* ===== HEADER ===== */}
-        <AppBar 
-          position="static" 
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', zIndex: 1 }}>
+        <AppBar
+          position="static"
           elevation={0}
-          sx={{ 
+          sx={{
             background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <IconButton 
-                color="inherit" 
+              <IconButton
+                color="inherit"
                 onClick={handleBack}
                 sx={{
                   bgcolor: 'rgba(255,255,255,0.1)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 }}
               >
                 <ArrowBackIcon />
@@ -347,7 +390,12 @@ export default function ReportsPage() {
                   Employee Reports
                 </Typography>
                 <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
                 </Typography>
               </Box>
             </Box>
@@ -366,21 +414,21 @@ export default function ReportsPage() {
                 }}
               >
                 <SearchIcon sx={{ opacity: 0.8 }} />
-                <InputBase 
-                  placeholder="Search..." 
-                  sx={{ 
-                    ml: 1, 
+                <InputBase
+                  placeholder="Search..."
+                  sx={{
+                    ml: 1,
                     color: 'white',
-                    '::placeholder': { opacity: 0.8 }
-                  }} 
+                    '::placeholder': { opacity: 0.8 },
+                  }}
                 />
               </Box>
 
-              <IconButton 
+              <IconButton
                 color="inherit"
                 sx={{
                   bgcolor: 'rgba(255,255,255,0.1)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 }}
               >
                 <Badge badgeContent={2} color="error">
@@ -388,12 +436,12 @@ export default function ReportsPage() {
                 </Badge>
               </IconButton>
 
-              <IconButton 
-                color="inherit" 
+              <IconButton
+                color="inherit"
                 onClick={handleLogout}
                 sx={{
                   bgcolor: 'rgba(255,255,255,0.1)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 }}
               >
                 <LogoutIcon />
@@ -430,7 +478,7 @@ export default function ReportsPage() {
                   </Typography>
                 </Box>
               </Box>
-              <Chip 
+              <Chip
                 label={`${employees.length} Employees`}
                 sx={{
                   background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
@@ -447,12 +495,12 @@ export default function ReportsPage() {
                 variant="contained"
                 startIcon={<PictureAsPdfIcon />}
                 onClick={exportToPDF}
-                sx={{ 
+                sx={{
                   background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
                   color: 'white',
                   '&:hover': {
                     background: 'linear-gradient(135deg, #1a7a35 0%, #2d9f47 100%)',
-                  }
+                  },
                 }}
               >
                 Export to PDF
@@ -462,14 +510,14 @@ export default function ReportsPage() {
                 variant="outlined"
                 startIcon={<CsvIcon />}
                 onClick={exportToCSV}
-                sx={{ 
-                  borderColor: '#2d9f47', 
+                sx={{
+                  borderColor: '#2d9f47',
                   color: '#2d9f47',
                   borderWidth: 2,
                   '&:hover': {
                     borderWidth: 2,
                     backgroundColor: 'rgba(45, 159, 71, 0.05)',
-                  }
+                  },
                 }}
               >
                 Export to CSV
@@ -483,18 +531,11 @@ export default function ReportsPage() {
               <Table>
                 <TableHead>
                   <TableRow sx={{ background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)' }}>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
-                      Name
-                    </TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
-                      Role
-                    </TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
-                      Email
-                    </TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
-                      Last Login
-                    </TableCell>
+                    {['Name', 'Role', 'Email', 'Last Login'].map((h) => (
+                      <TableCell key={h} sx={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', py: 2 }}>
+                        {h}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -510,11 +551,9 @@ export default function ReportsPage() {
                   ) : (
                     employees.map((emp) => (
                       <StyledTableRow key={emp.id}>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                          {emp.name}
-                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontSize: '0.95rem' }}>{emp.name}</TableCell>
                         <TableCell sx={{ fontSize: '0.95rem' }}>
-                          <Chip 
+                          <Chip
                             label={emp.role}
                             size="small"
                             sx={{
@@ -525,9 +564,7 @@ export default function ReportsPage() {
                             }}
                           />
                         </TableCell>
-                        <TableCell sx={{ fontSize: '0.95rem', color: 'text.secondary' }}>
-                          {emp.email}
-                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.95rem', color: 'text.secondary' }}>{emp.email}</TableCell>
                         <TableCell sx={{ fontSize: '0.95rem', color: 'text.secondary' }}>
                           {formatDate(emp.last_login)}
                         </TableCell>

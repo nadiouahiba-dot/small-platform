@@ -1,3 +1,4 @@
+// src/pages/DashboardPage.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
@@ -33,15 +34,15 @@ import {
   Notifications as NotificationsIcon,
   Email as EmailIcon,
   Work as WorkIcon,
-  Dashboard as DashboardIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import MarabesLogo from '../assets/marabes-logo.png'; // ✅ Added logo import
 
 const BASE_URL = 'http://localhost:5000/api';
 const drawerWidth = 260;
 
-// ====== ENHANCED STYLES ======
+// ====== STYLES ======
 const StatsCard = styled(Card)(({ theme }) => ({
   background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
   color: 'white',
@@ -57,7 +58,8 @@ const StatsCard = styled(Card)(({ theme }) => ({
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
+    background:
+      'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
     opacity: 0,
     transition: 'opacity 0.4s ease',
   },
@@ -158,9 +160,11 @@ export default function DashboardPage() {
   if (error) {
     return (
       <Box sx={{ p: 4 }}>
-        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>
-        <Button 
-          variant="contained" 
+        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+          {error}
+        </Alert>
+        <Button
+          variant="contained"
           onClick={() => navigate('/login')}
           sx={{
             background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
@@ -200,7 +204,46 @@ export default function DashboardPage() {
     Array.isArray(data.recentLogins) && data.recentLogins.length > 0;
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f7fb' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        height: '100vh',
+        bgcolor: '#f5f7fb',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* ✅ Animated background logo */}
+      <Box
+        component="img"
+        src={MarabesLogo}
+        alt="Marabes background"
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%) scale(1)',
+          width: '1200px',
+          opacity: 0.08,
+          filter:
+            'blur(14px) grayscale(100%) drop-shadow(0px 0px 25px rgba(0,0,0,0.15))',
+          pointerEvents: 'none',
+          zIndex: 0,
+          animation: 'zoomFade 20s ease-in-out infinite',
+          '@keyframes zoomFade': {
+            '0%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.08 },
+            '50%': {
+              transform: 'translate(-50%, -50%) scale(1.08)',
+              opacity: 0.1,
+            },
+            '100%': {
+              transform: 'translate(-50%, -50%) scale(1)',
+              opacity: 0.08,
+            },
+          },
+        }}
+      />
+
       {/* SIDEBAR */}
       <Drawer
         variant="permanent"
@@ -217,25 +260,40 @@ export default function DashboardPage() {
             flexDirection: 'column',
             justifyContent: 'space-between',
             borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(12px)', // glass effect
           },
         }}
       >
         <Box>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
+            {/* ✅ Replaced dashboard icon with logo */}
             <Box
               sx={{
-                width: 60,
-                height: 60,
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                width: 80,
+                height: 80,
+                borderRadius: '24px',
+                overflow: 'hidden',
+                margin: '0 auto 16px',
+                boxShadow: '0 8px 24px rgba(45, 159, 71, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 16px',
-                boxShadow: '0 8px 24px rgba(45, 159, 71, 0.4)',
+                background:
+                  'radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 70%)',
+                border: '2px solid rgba(255, 255, 255, 0.25)',
               }}
             >
-              <DashboardIcon sx={{ fontSize: 32, color: 'white' }} />
+              <Box
+                component="img"
+                src={MarabesLogo}
+                alt="Marabes Logo"
+                sx={{
+                  width: '70%',
+                  height: '70%',
+                  objectFit: 'cover',
+                  borderRadius: '50%',
+                }}
+              />
             </Box>
             <Typography
               variant="h5"
@@ -245,7 +303,11 @@ export default function DashboardPage() {
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: '1px' }}
+              sx={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+              }}
             >
               Management System
             </Typography>
@@ -253,7 +315,6 @@ export default function DashboardPage() {
 
           <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', mb: 3 }} />
 
-          {/* Show buttons only for admin */}
           {role === 'admin' && (
             <>
               <SidebarButton
@@ -281,18 +342,20 @@ export default function DashboardPage() {
           <Typography sx={{ textAlign: 'center', opacity: 0.5, fontSize: 12 }}>
             © 2025 Admin Panel
           </Typography>
-          <Typography sx={{ textAlign: 'center', opacity: 0.4, fontSize: 11, mt: 0.5 }}>
+          <Typography
+            sx={{ textAlign: 'center', opacity: 0.4, fontSize: 11, mt: 0.5 }}
+          >
             v2.0.1
           </Typography>
         </Box>
       </Drawer>
 
       {/* MAIN CONTENT */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <AppBar 
-          position="static" 
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', zIndex: 1 }}>
+        <AppBar
+          position="static"
           elevation={0}
-          sx={{ 
+          sx={{
             background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           }}
@@ -303,9 +366,15 @@ export default function DashboardPage() {
                 {role === 'admin' ? 'Admin Dashboard' : 'Employee Dashboard'}
               </Typography>
               <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
               </Typography>
             </Box>
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box
                 sx={{
@@ -320,21 +389,21 @@ export default function DashboardPage() {
                 }}
               >
                 <SearchIcon sx={{ opacity: 0.8 }} />
-                <InputBase 
-                  placeholder="Search..." 
-                  sx={{ 
-                    ml: 1, 
+                <InputBase
+                  placeholder="Search..."
+                  sx={{
+                    ml: 1,
                     color: 'white',
-                    '::placeholder': { opacity: 0.8 }
-                  }} 
+                    '::placeholder': { opacity: 0.8 },
+                  }}
                 />
               </Box>
 
-              <IconButton 
+              <IconButton
                 color="inherit"
                 sx={{
                   bgcolor: 'rgba(255,255,255,0.1)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 }}
               >
                 <Badge badgeContent={2} color="error">
@@ -342,12 +411,12 @@ export default function DashboardPage() {
                 </Badge>
               </IconButton>
 
-              <IconButton 
-                color="inherit" 
+              <IconButton
+                color="inherit"
                 onClick={handleLogout}
                 sx={{
                   bgcolor: 'rgba(255,255,255,0.1)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 }}
               >
                 <LogoutIcon />
@@ -358,7 +427,7 @@ export default function DashboardPage() {
 
         {/* BODY */}
         <Box sx={{ flexGrow: 1, p: 4, overflowY: 'auto' }}>
-          {/* ADMIN VIEW */}
+          {/* ===== ADMIN VIEW ===== */}
           {role === 'admin' ? (
             <>
               <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -423,7 +492,7 @@ export default function DashboardPage() {
                       </Typography>
                     </Box>
                   </Box>
-                  <Chip 
+                  <Chip
                     label={`${hasLogins ? data.recentLogins.length : 0} Active`}
                     sx={{
                       background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
@@ -439,8 +508,8 @@ export default function DashboardPage() {
                   <List sx={{ bgcolor: 'transparent' }}>
                     {data.recentLogins.map((user, index) => (
                       <StyledListItem key={index}>
-                        <Avatar 
-                          sx={{ 
+                        <Avatar
+                          sx={{
                             background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
                             mr: 2,
                             width: 48,
@@ -483,7 +552,7 @@ export default function DashboardPage() {
               </GlassCard>
             </>
           ) : (
-            /* EMPLOYEE VIEW */
+            /* ===== EMPLOYEE VIEW ===== */
             <Box sx={{ maxWidth: 600, mx: 'auto', mt: 6 }}>
               <GlassCard sx={{ p: 5 }}>
                 <Box sx={{ textAlign: 'center', mb: 4 }}>

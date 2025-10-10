@@ -31,7 +31,9 @@ import {
   Work as WorkIcon,
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
+import MarabesLogo from '../assets/marabes-logo.png'; // ✅ add your logo
 
+// ===== Styles =====
 const StyledPaper = styled(Paper)(({ theme }) => ({
   background: 'linear-gradient(145deg, #ffffff 0%, #f5f7fa 100%)',
   borderRadius: theme.spacing(3),
@@ -84,6 +86,10 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
       },
     },
   },
+  '& input:-webkit-autofill': {
+    boxShadow: '0 0 0 100px white inset !important', // ✅ removes blue autofill background
+    WebkitTextFillColor: '#000 !important',
+  },
   '& .MuiInputLabel-root.Mui-focused': {
     color: '#2d9f47',
   },
@@ -104,6 +110,10 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
         borderWidth: '2px',
       },
     },
+  },
+  '& input:-webkit-autofill': {
+    boxShadow: '0 0 0 100px white inset !important', 
+    WebkitTextFillColor: '#000 !important',
   },
   '& .MuiInputLabel-root.Mui-focused': {
     color: '#2d9f47',
@@ -155,6 +165,7 @@ const BackButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+// ===== Component =====
 const RegisterPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -164,11 +175,6 @@ const RegisterPage = () => {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
-  const handleNameChange = (e) => setName(e.target.value);
-  const handleEmailChange = (e) => setEmail(e.target.value);
-  const handlePasswordChange = (e) => setPassword(e.target.value);
-  const handleRoleChange = (e) => setRole(e.target.value);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -192,7 +198,6 @@ const RegisterPage = () => {
     }
   };
 
-  const handleClickShowPassword = () => setShowPassword(!showPassword);
   const handleBack = () => navigate(-1);
 
   return (
@@ -204,9 +209,34 @@ const RegisterPage = () => {
         alignItems: 'center',
         justifyContent: 'center',
         py: 4,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <Container maxWidth="sm">
+
+      <Box
+        component="img"
+        src={MarabesLogo}
+        alt="Marabes background"
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%) scale(1)',
+          width: '1000px',
+          opacity: 0.08,
+          filter: 'blur(15px) grayscale(100%)',
+          zIndex: 0,
+          animation: 'zoomFade 18s ease-in-out infinite',
+          '@keyframes zoomFade': {
+            '0%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.08 },
+            '50%': { transform: 'translate(-50%, -50%) scale(1.1)', opacity: 0.1 },
+            '100%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.08 },
+          },
+        }}
+      />
+
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
         <StyledPaper elevation={0}>
           <HeaderBox>
             <Box sx={{ position: 'relative', zIndex: 1 }}>
@@ -245,19 +275,13 @@ const RegisterPage = () => {
 
           <Box sx={{ p: 4 }}>
             {error && (
-              <Alert
-                severity="error"
-                sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(211, 47, 47, 0.15)' }}
-              >
+              <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                 {error}
               </Alert>
             )}
 
             {success && (
-              <Alert
-                severity="success"
-                sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)' }}
-              >
+              <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
                 Registration successful! User has been created.
               </Alert>
             )}
@@ -274,7 +298,7 @@ const RegisterPage = () => {
                 required
                 fullWidth
                 value={name}
-                onChange={handleNameChange}
+                onChange={(e) => setName(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -282,7 +306,6 @@ const RegisterPage = () => {
                     </InputAdornment>
                   ),
                 }}
-                placeholder="Enter full name"
               />
 
               <StyledTextField
@@ -291,7 +314,7 @@ const RegisterPage = () => {
                 required
                 fullWidth
                 value={email}
-                onChange={handleEmailChange}
+                onChange={(e) => setEmail(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -299,7 +322,6 @@ const RegisterPage = () => {
                     </InputAdornment>
                   ),
                 }}
-                placeholder="Enter email address"
               />
 
               <StyledTextField
@@ -308,7 +330,7 @@ const RegisterPage = () => {
                 required
                 fullWidth
                 value={password}
-                onChange={handlePasswordChange}
+                onChange={(e) => setPassword(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -318,8 +340,7 @@ const RegisterPage = () => {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={handleClickShowPassword}
+                        onClick={() => setShowPassword(!showPassword)}
                         edge="end"
                         sx={{ color: '#2d9f47' }}
                       >
@@ -328,7 +349,6 @@ const RegisterPage = () => {
                     </InputAdornment>
                   ),
                 }}
-                placeholder="Enter password"
               />
 
               <StyledFormControl fullWidth required>
@@ -336,7 +356,7 @@ const RegisterPage = () => {
                 <Select
                   labelId="role-label"
                   value={role}
-                  onChange={handleRoleChange}
+                  onChange={(e) => setRole(e.target.value)}
                   label="Role"
                   startAdornment={
                     <InputAdornment position="start">
@@ -350,14 +370,12 @@ const RegisterPage = () => {
                 >
                   <MenuItem value="employee">
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <WorkIcon sx={{ fontSize: 20 }} />
-                      Employee
+                      <WorkIcon sx={{ fontSize: 20 }} /> Employee
                     </Box>
                   </MenuItem>
                   <MenuItem value="admin">
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AdminIcon sx={{ fontSize: 20 }} />
-                      Admin
+                      <AdminIcon sx={{ fontSize: 20 }} /> Admin
                     </Box>
                   </MenuItem>
                 </Select>

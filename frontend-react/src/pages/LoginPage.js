@@ -16,18 +16,20 @@ import {
   IconButton,
 } from '@mui/material';
 import {
-  Login as LoginIcon,
   Email as EmailIcon,
   Lock as LockIcon,
   Visibility,
   VisibilityOff,
 } from '@mui/icons-material';
+import MarabesLogo from '../assets/marabes-logo.png';
 
+// ================= STYLES =================
 const StyledPaper = styled(Paper)(({ theme }) => ({
   background: 'linear-gradient(145deg, #ffffff 0%, #f5f7fa 100%)',
   borderRadius: theme.spacing(3),
   boxShadow: '0 12px 40px rgba(0, 0, 0, 0.12)',
   overflow: 'hidden',
+  position: 'relative',
 }));
 
 const HeaderBox = styled(Box)(({ theme }) => ({
@@ -78,6 +80,12 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiInputLabel-root.Mui-focused': {
     color: '#2d9f47',
   },
+  // ✅ remove blue autofill color (Chrome)
+  '& input:-webkit-autofill': {
+    boxShadow: '0 0 0 100px white inset !important',
+    WebkitTextFillColor: '#000 !important',
+    transition: 'background-color 5000s ease-in-out 0s',
+  },
 }));
 
 const LoginButton = styled(Button)(({ theme }) => ({
@@ -100,15 +108,28 @@ const LoginButton = styled(Button)(({ theme }) => ({
 }));
 
 const LogoAvatar = styled(Avatar)(({ theme }) => ({
-  width: 80,
-  height: 80,
+  width: 110,
+  height: 110,
   margin: '0 auto',
   marginBottom: theme.spacing(2),
-  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  background:
+    'radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 70%)',
   border: '3px solid rgba(255, 255, 255, 0.3)',
-  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '50%',
+  overflow: 'hidden',
+  '& img': {
+    width: '75%',
+    height: '75%',
+    borderRadius: '50%',
+    objectFit: 'cover',
+  },
 }));
 
+// ================= COMPONENT =================
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -120,11 +141,10 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorMsg('');
     try {
-      // Use relative URL here
       const response = await axios.post('http://localhost:5000/api/login', {
-       email,
-      password,
-});
+        email,
+        password,
+      });
 
       const { token, role } = response.data;
       localStorage.setItem('token', token);
@@ -146,20 +166,46 @@ export default function LoginPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #d8e3ea 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         py: 4,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <Container maxWidth="xs">
+      <Box
+        component="img"
+        src={MarabesLogo}
+        alt="Marabes background"
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%) scale(1)',
+          width: '900px',
+          opacity: 0.08,
+          filter:
+            'blur(14px) grayscale(100%) drop-shadow(0px 0px 25px rgba(0,0,0,0.15))',
+          pointerEvents: 'none',
+          animation: 'zoomFade 18s ease-in-out infinite',
+          '@keyframes zoomFade': {
+            '0%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.08 },
+            '50%': { transform: 'translate(-50%, -50%) scale(1.08)', opacity: 0.1 },
+            '100%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.08 },
+          },
+        }}
+      />
+
+      <Container maxWidth="xs" sx={{ position: 'relative', zIndex: 2 }}>
         <StyledPaper elevation={0}>
           <HeaderBox>
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               <LogoAvatar>
-                <LoginIcon sx={{ fontSize: 40 }} />
+                <img src={MarabesLogo} alt="Marabes Logo" />
               </LogoAvatar>
+
               <Typography variant="h4" fontWeight="700" gutterBottom>
                 Welcome Back
               </Typography>
@@ -171,12 +217,12 @@ export default function LoginPage() {
 
           <Box sx={{ p: 4 }}>
             {errorMsg && (
-              <Alert 
-                severity="error" 
-                sx={{ 
-                  mb: 3, 
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 3,
                   borderRadius: 2,
-                  boxShadow: '0 4px 12px rgba(211, 47, 47, 0.15)'
+                  boxShadow: '0 4px 12px rgba(211, 47, 47, 0.15)',
                 }}
               >
                 {errorMsg}
@@ -250,7 +296,7 @@ export default function LoginPage() {
 
         <Box sx={{ mt: 3, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            © 2024 Marabes. All rights reserved.
+            © 2025 Marabes. All rights reserved.
           </Typography>
         </Box>
       </Container>
