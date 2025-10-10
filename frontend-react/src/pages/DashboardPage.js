@@ -23,6 +23,22 @@ import {
   InputBase,
   Badge,
   Chip,
+
+  // 🔽 NEW for the users table & modal
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TableContainer,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Tooltip,
+  Snackbar,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -35,6 +51,11 @@ import {
   Email as EmailIcon,
   Work as WorkIcon,
   TrendingUp as TrendingUpIcon,
+
+  // 🔽 NEW icons used in the users table
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import MarabesLogo from '../assets/marabes-logo.png'; // ✅ Added logo import
@@ -128,6 +149,24 @@ const GlassCard = styled(Card)(({ theme }) => ({
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
 }));
 
+// 🔽 Glassy Paper for table container
+const GlassPaper = styled(Paper)(() => ({
+  background: 'rgba(255,255,255,0.86)',
+  backdropFilter: 'blur(18px)',
+  border: '1px solid rgba(0,0,0,0.06)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.06)',
+  borderRadius: 16,
+}));
+
+// 🔽 subtle icon button styling for table actions
+const ActionIconButton = styled(IconButton)(({ theme }) => ({
+  background: 'rgba(0,0,0,0.04)',
+  marginRight: theme.spacing(1),
+  '&:hover': {
+    background: 'rgba(0,0,0,0.08)',
+  },
+}));
+
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -136,6 +175,18 @@ export default function DashboardPage() {
   const role = localStorage.getItem('role');
   const token = localStorage.getItem('token');
 
+  // ===== NEW: Users state for the new table =====
+  const [users, setUsers] = useState([]);
+
+  // modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [form, setForm] = useState({ name: '', email: '', role: 'employee' });
+
+  // feedback
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+
+  // ========= ORIGINAL FETCH =========
   useEffect(() => {
     if (!token) {
       setError('No token found. Please login.');
@@ -146,15 +197,89 @@ export default function DashboardPage() {
       .get(`${BASE_URL}/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setData(res.data))
+      .then((res) => {
+  setData(res.data);
+  setUsers(res.data.allUsers || []);   // ✅ get users from backend response
+})
       .catch(() => setError('Failed to load dashboard. Please login again.'));
   }, [token]);
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     navigate('/login');
   };
+
+  // ===== Users table handlers (Add / Edit / Delete) =====
+  const openAddModal = () => {
+    setEditingUser(null);
+    setForm({ name: '', email: '', role: 'employee' });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (user) => {
+    setEditingUser(user);
+    setForm({ name: user.name || '', email: user.email || '', role: user.role || 'employee' });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => setIsModalOpen(false);
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleSaveUser = async () => {
+  try {
+    if (editingUser) {
+      await axios.put(`${BASE_URL}/users/${editingUser.id || editingUser._id}`, form, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setToast({ open: true, message: 'User updated.', severity: 'success' });
+    } else {
+      await axios.post(`${BASE_URL}/users`, form, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setToast({ open: true, message: 'User created.', severity: 'success' });
+    }
+    closeModal();
+
+    // ✅ refresh user table from /dashboard
+    axios
+      .get(`${BASE_URL}/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setUsers(res.data.allUsers || []))
+      .catch(() => setToast({ open: true, message: 'Failed to refresh users.', severity: 'error' }));
+
+  } catch (e) {
+    setToast({ open: true, message: 'Action failed. Check input.', severity: 'error' });
+  }
+};
+
+
+  const handleDeleteUser = async (user) => {
+  try {
+    await axios.delete(`${BASE_URL}/users/${user.id || user._id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setToast({ open: true, message: 'User deleted.', severity: 'success' });
+
+    // ✅ refresh user table from /dashboard
+    axios
+      .get(`${BASE_URL}/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setUsers(res.data.allUsers || []))
+      .catch(() => setToast({ open: true, message: 'Failed to refresh users.', severity: 'error' }));
+
+  } catch (e) {
+    setToast({ open: true, message: 'Delete failed.', severity: 'error' });
+  }
+};
+
 
   // ====== UI ======
   if (error) {
@@ -467,7 +592,7 @@ export default function DashboardPage() {
                 </Grid>
               </Grid>
 
-              <GlassCard sx={{ p: 3 }}>
+              <GlassCard sx={{ p: 3, mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Box
@@ -550,6 +675,87 @@ export default function DashboardPage() {
                   </Box>
                 )}
               </GlassCard>
+
+              {/* ===== NEW: ALL USERS GLASS TABLE ===== */}
+              <GlassCard sx={{ p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="h5" fontWeight={700}>
+                    All Users
+                  </Typography>
+                  <Tooltip title="Add New Member">
+                    <IconButton
+                      onClick={openAddModal}
+                      sx={{
+                        background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                        color: 'white',
+                        '&:hover': { opacity: 0.9 },
+                      }}
+                    >
+                      <AddIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
+                <TableContainer component={GlassPaper}>
+                  <Table size="small" aria-label="users table">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Email</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Last Login</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {users.length === 0 ? (
+                       <TableRow>
+                        <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                          No users found.
+                        </TableCell>
+                       </TableRow>
+                     ) : (
+                      users.map((u) => (
+
+                          <TableRow key={u.id || u._id} hover>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Avatar sx={{ width: 34, height: 34, bgcolor: '#2d9f47' }}>
+                                  <PersonIcon fontSize="small" />
+                                </Avatar>
+                                <Typography fontWeight={600}>{u.name}</Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>{u.email}</TableCell>
+                            <TableCell sx={{ textTransform: 'capitalize' }}>{u.role || 'employee'}</TableCell>
+                            <TableCell>
+                              {u.last_login
+                                ? new Date(u.last_login).toLocaleString('en-GB', {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short',
+                                  })
+                                : '—'}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Tooltip title="Edit">
+                                <ActionIconButton onClick={() => openEditModal(u)} size="small">
+                                  <EditIcon fontSize="small" />
+                                </ActionIconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete">
+                                <ActionIconButton onClick={() => handleDeleteUser(u)} size="small">
+                                  <DeleteIcon fontSize="small" />
+                                </ActionIconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </GlassCard>
+              {/* ===== END: NEW USERS TABLE ===== */}
             </>
           ) : (
             /* ===== EMPLOYEE VIEW ===== */
@@ -691,6 +897,64 @@ export default function DashboardPage() {
           )}
         </Box>
       </Box>
+
+      {/* ===== Modal for Add/Edit User ===== */}
+      <Dialog open={isModalOpen} onClose={closeModal} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {editingUser ? 'Edit User' : 'Add New Member'}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            <TextField
+              label="Name"
+              name="name"
+              value={form.name}
+              onChange={handleFormChange}
+              fullWidth
+            />
+            <TextField
+              label="Email"
+              name="email"
+              value={form.email}
+              onChange={handleFormChange}
+              type="email"
+              fullWidth
+            />
+            <TextField
+              label="Role"
+              name="role"
+              value={form.role}
+              onChange={handleFormChange}
+              select
+              SelectProps={{ native: true }}
+              fullWidth
+            >
+              <option value="admin">admin</option>
+              <option value="employee">employee</option>
+            </TextField>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={closeModal} variant="outlined">Cancel</Button>
+          <Button
+            onClick={handleSaveUser}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+            }}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar feedback */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={2800}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+        message={toast.message}
+      />
     </Box>
   );
 }
