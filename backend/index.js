@@ -7,6 +7,7 @@ const db = require('./db/database');
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const reportsRoutes = require('./routes/reports');
+const usersRoutes = require('./routes/users'); // ✅ NEW import
 
 const app = express();
 app.use(cors());
@@ -32,6 +33,7 @@ function authenticateToken(req, res, next) {
 app.use('/api', authRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/users', usersRoutes); // ✅ NEW users routes
 
 // ================= Default Route =================
 app.get('/', (req, res) => {

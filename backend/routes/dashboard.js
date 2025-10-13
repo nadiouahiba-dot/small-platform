@@ -24,10 +24,12 @@ router.get('/dashboard', authenticateToken, (req, res) => {
   const { id, role } = req.user;
 
   if (role === 'admin') {
-    // ✅ For admin: show total employees + recent logins
+    // ✅ For admin: total employees + recent logins + all users
     const totalQuery = `SELECT COUNT(*) AS totalEmployees FROM users WHERE role = 'employee'`;
     const recentQuery = `SELECT id, name, email, role, last_login 
                          FROM users ORDER BY last_login DESC LIMIT 5`;
+    const allUsersQuery = `SELECT id, name, email, role, last_login 
+                           FROM users ORDER BY id ASC`;
 
     db.query(totalQuery, (err, totalResult) => {
       if (err) {
@@ -41,14 +43,23 @@ router.get('/dashboard', authenticateToken, (req, res) => {
           return res.status(500).json({ message: 'Database error (recent logins)', error: err.message });
         }
 
-        return res.json({
-          role: 'admin',
-          totalEmployees: totalResult[0].totalEmployees,
-          recentLogins: recentResult,
-          message: 'Welcome Admin',
+        db.query(allUsersQuery, (err, allUsersResult) => {
+          if (err) {
+            console.error('❌ Error fetching all users:', err);
+            return res.status(500).json({ message: 'Database error (all users)', error: err.message });
+          }
+
+          return res.json({
+            role: 'admin',
+            totalEmployees: totalResult[0].totalEmployees,
+            recentLogins: recentResult,
+            allUsers: allUsersResult, // ✅ added full user list
+            message: 'Welcome Admin',
+          });
         });
       });
     });
+
   } else if (role === 'employee') {
     // ✅ For employee: show their own profile
     db.query(
@@ -61,7 +72,6 @@ router.get('/dashboard', authenticateToken, (req, res) => {
         }
         if (!rows.length) return res.status(404).json({ message: 'User not found' });
 
-        // 🔥 Main update: send flat object instead of nested "user"
         const user = rows[0];
         return res.json({
           id: user.id,
