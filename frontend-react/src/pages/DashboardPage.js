@@ -1,10 +1,9 @@
 // src/pages/DashboardPage.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+
 import Slide from '@mui/material/Slide';
-import SettingsIcon from '@mui/icons-material/Settings';
-import { Menu, MenuItem, } from '@mui/material';
 import {
   Box,
   Button,
@@ -37,11 +36,14 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Tooltip,
   Snackbar,
   Fade,
   Zoom,
+  Tooltip,
+  Menu,
+  MenuItem,
 } from '@mui/material';
+
 import {
   People as PeopleIcon,
   ExitToApp as LogoutIcon,
@@ -58,9 +60,15 @@ import {
   Delete as DeleteIcon,
   Security as SecurityIcon,
   CheckCircle as CheckCircleIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
+
 import { styled, keyframes } from '@mui/material/styles';
 import MarabesLogo from '../assets/marabes-logo.png';
+
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip as ChartJSTooltip, Legend } from 'chart.js';
+ChartJS.register(BarElement, CategoryScale, LinearScale, ChartJSTooltip, Legend);
 
 const BASE_URL = 'http://localhost:5000/api';
 const drawerWidth = 280;
@@ -261,6 +269,14 @@ export default function DashboardPage() {
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   const [filterText, setFilterText] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+
+// 🧭 Period Filter
+const [filterPeriod, setFilterPeriod] = useState('week'); // default = this week
+const [filterStartDate, setFilterStartDate] = useState('');
+const [filterEndDate, setFilterEndDate] = useState('');
+
+const [showChart, setShowChart] = useState(false);
+
   const [openConfig, setOpenConfig] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -335,6 +351,21 @@ const handleNotifClose = () => {
       })
       .catch(() => setError('Failed to load dashboard. Please login again.'));
   }, [token]);
+
+  // 🗓️ Automatically select current week when page loads
+useEffect(() => {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - diff);
+  const today = now.toISOString().split('T')[0];
+  const start = monday.toISOString().split('T')[0];
+
+  setFilterStartDate(start);
+  setFilterEndDate(today);
+}, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -469,50 +500,88 @@ setNotifications((prev) => [
     }
   };
 
-  if (error) {
-    return (
-      <Box sx={{ p: 4 }}>
-        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
-          {error}
-        </Alert>
-        <Button
-          variant="contained"
-          onClick={() => navigate('/login')}
-          sx={{
-            background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-            textTransform: 'none',
-            px: 3,
-            py: 1.5,
-            borderRadius: 2,
-          }}
-        >
-          Go to Login
-        </Button>
-      </Box>
-    );
-  }
+// ✅ These hooks come first
+const hasLogins = Array.isArray(data?.recentLogins) && data?.recentLogins.length > 0;
 
-  if (!data) {
-    return (
-      <Box
+// 🗓️ Weekly login data
+const weeklyData = useMemo(() => {
+  if (!data?.recentLogins) return { labels: [], datasets: [] };
+
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - diff);
+  monday.setHours(0, 0, 0, 0);
+
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const counts = Array(7).fill(0);
+
+  data.recentLogins.forEach((user) => {
+    if (!user.last_login) return;
+    const loginDate = new Date(user.last_login);
+    if (loginDate >= monday) {
+      const index = loginDate.getDay() === 0 ? 6 : loginDate.getDay() - 1;
+      counts[index]++;
+    }
+  });
+
+  return {
+    labels: days,
+    datasets: [
+      {
+        label: 'Logins per day',
+        data: counts,
+        backgroundColor: 'rgba(45, 159, 71, 0.7)',
+        borderRadius: 8,
+      },
+    ],
+  };
+}, [data]);
+
+// ✅ Then add the conditional returns after
+if (error) {
+  return (
+    <Box sx={{ p: 4 }}>
+      <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+        {error}
+      </Alert>
+      <Button
+        variant="contained"
+        onClick={() => navigate('/login')}
         sx={{
-          height: '100vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          flexDirection: 'column',
           background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+          textTransform: 'none',
+          px: 3,
+          py: 1.5,
+          borderRadius: 2,
         }}
       >
-        <CircularProgress size={70} thickness={4} sx={{ color: 'white' }} />
-        <Typography variant="h6" sx={{ mt: 3, color: 'white', fontWeight: 600 }}>
-          Loading your dashboard...
-        </Typography>
-      </Box>
-    );
-  }
+        Go to Login
+      </Button>
+    </Box>
+  );
+}
 
-  const hasLogins = Array.isArray(data.recentLogins) && data.recentLogins.length > 0;
+if (!data) {
+  return (
+    <Box
+      sx={{
+        height: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
+        background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+      }}
+    >
+      <CircularProgress size={70} thickness={4} sx={{ color: 'white' }} />
+      <Typography variant="h6" sx={{ mt: 3, color: 'white', fontWeight: 600 }}>
+        Loading your dashboard...
+      </Typography>
+    </Box>
+  );
+}
 
   return (
     <Box
@@ -842,84 +911,191 @@ setNotifications((prev) => [
 </Fade>
 
 
-              {/* Enhanced Filter Controls */}
-              <Fade in timeout={800}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    gap: 2,
-                    mb: 3,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <TextField
-                    label="Search users"
-                    variant="outlined"
-                    size="small"
-                    value={filterText}
-                    onChange={(e) => setFilterText(e.target.value.toLowerCase())}
-                    sx={{
-                      width: 240,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)',
-                        },
-                      },
-                    }}
-                  />
+{/* Enhanced Filter Controls */}
+<Fade in timeout={800}>
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 2,
+      mb: 3,
+      flexWrap: 'wrap',
+    }}
+  >
+    {/* 🔍 Search field */}
+    <TextField
+      label="Search users"
+      variant="outlined"
+      size="small"
+      value={filterText}
+      onChange={(e) => setFilterText(e.target.value.toLowerCase())}
+      sx={{
+        width: 240,
+        '& .MuiOutlinedInput-root': {
+          borderRadius: 2,
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)',
+          },
+        },
+      }}
+    />
 
-                  <TextField
-                    label="Filter by role"
-                    variant="outlined"
-                    size="small"
-                    select
-                    SelectProps={{ native: true }}
-                    value={filterRole}
-                    onChange={(e) => setFilterRole(e.target.value)}
-                    sx={{
-                      width: 200,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)',
-                        },
-                      },
-                    }}
-                  >
-                    <option value="all">All Roles</option>
-                    <option value="admin">Admin</option>
-                    <option value="employee">Employee</option>
-                  </TextField>
+    {/* 🧩 Role filter */}
+    <TextField
+      label="Filter by role"
+      variant="outlined"
+      size="small"
+      select
+      SelectProps={{ native: true }}
+      value={filterRole}
+      onChange={(e) => setFilterRole(e.target.value)}
+      sx={{
+        width: 200,
+        '& .MuiOutlinedInput-root': {
+          borderRadius: 2,
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)',
+          },
+        },
+      }}
+    >
+      <option value="all">All Roles</option>
+      <option value="admin">Admin</option>
+      <option value="employee">Employee</option>
+    </TextField>
 
-                  <Button
-                    onClick={openAddModal}
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    sx={{
-                      background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-                      color: 'white',
-                      textTransform: 'none',
-                      fontWeight: 700,
-                      px: 3,
-                      py: 1.2,
-                      borderRadius: 2.5,
-                      boxShadow: '0 6px 20px rgba(45, 159, 71, 0.35)',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 8px 25px rgba(45, 159, 71, 0.45)',
-                      },
-                    }}
-                  >
-                    Add New Member
-                  </Button>
-                </Box>
-              </Fade>
+    {/* 🗓️ Period filters */}
+
+{/* 🧭 Smart Period Filter */}
+<TextField
+  select
+  label="Period"
+  value={filterPeriod}
+  onChange={(e) => setFilterPeriod(e.target.value)}
+  size="small"
+  SelectProps={{ native: true }}
+  sx={{
+    width: 200,
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 2,
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)',
+      },
+    },
+  }}
+>
+  <option value="today">Today</option>
+  <option value="week">This Week</option>
+  <option value="month">This Month</option>
+  <option value="custom">Custom Range</option>
+</TextField>
+
+{/* 📅 Only show when “Custom Range” is selected */}
+{filterPeriod === 'custom' && (
+  <>
+    <TextField
+      label="From"
+      type="date"
+      size="small"
+      value={filterStartDate}
+      onChange={(e) => setFilterStartDate(e.target.value)}
+      InputLabelProps={{ shrink: true }}
+      sx={{ width: 180 }}
+    />
+    <TextField
+      label="To"
+      type="date"
+      size="small"
+      value={filterEndDate}
+      onChange={(e) => setFilterEndDate(e.target.value)}
+      InputLabelProps={{ shrink: true }}
+      sx={{ width: 180 }}
+    />
+  </>
+)}
+
+{/* 🔄 Reset Button */}
+<Button
+  variant="outlined"
+  color="success"
+  onClick={() => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - diff);
+    setFilterPeriod('week');
+    setFilterStartDate(monday.toISOString().split('T')[0]);
+    setFilterEndDate(now.toISOString().split('T')[0]);
+  }}
+  sx={{
+    fontWeight: 700,
+    borderRadius: 2,
+    textTransform: 'none',
+    px: 2.5,
+    py: 1,
+  }}
+>
+  Reset to This Week
+</Button>
+
+
+    {/* ➕ Add New Member */}
+    <Button
+      onClick={openAddModal}
+      variant="contained"
+      startIcon={<AddIcon />}
+      sx={{
+        background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+        color: 'white',
+        textTransform: 'none',
+        fontWeight: 700,
+        px: 3,
+        py: 1.2,
+        borderRadius: 2.5,
+        boxShadow: '0 6px 20px rgba(45, 159, 71, 0.35)',
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 8px 25px rgba(45, 159, 71, 0.45)',
+        },
+      }}
+    >
+      Add New Member
+    </Button>
+  </Box>
+</Fade>
+
+<Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+  <Button
+    variant="outlined"
+    startIcon={<TrendingUpIcon />}
+    onClick={() => {
+      const chartSection = document.getElementById('weeklyChartSection');
+      chartSection?.scrollIntoView({ behavior: 'smooth' });
+      setShowChart(true);
+    }}
+    sx={{
+      textTransform: 'none',
+      borderRadius: 2,
+      px: 2.5,
+      fontWeight: 700,
+      color: '#1a7a35',
+      borderColor: '#2d9f47',
+      '&:hover': {
+        backgroundColor: 'rgba(45,159,71,0.08)',
+        borderColor: '#1a7a35',
+      },
+    }}
+  >
+    View Weekly Overview
+  </Button>
+</Box>
+
 
               {/* Enhanced Recent Login Activity Card */}
               <Fade in timeout={1000}>
@@ -959,12 +1135,41 @@ setNotifications((prev) => [
                     <List sx={{ bgcolor: 'transparent' }}>
                       {data.recentLogins
                         .filter((user) => {
-                          const matchText =
-                            user.name?.toLowerCase().includes(filterText) ||
-                            user.email?.toLowerCase().includes(filterText);
-                          const matchRole = filterRole === 'all' || user.role === filterRole;
-                          return matchText && matchRole;
-                        })
+  const matchText =
+    user.name?.toLowerCase().includes(filterText) ||
+    user.email?.toLowerCase().includes(filterText);
+  const matchRole = filterRole === 'all' || user.role === filterRole;
+
+  const loginDate = user.last_login ? new Date(user.last_login) : null;
+
+  // Period filters
+const now = new Date();
+let matchPeriod = true;
+
+if (filterPeriod === 'today') {
+  const today = now.toDateString();
+  matchPeriod = loginDate && loginDate.toDateString() === today;
+} else if (filterPeriod === 'week') {
+  const dayOfWeek = now.getDay();
+  const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - diff);
+  monday.setHours(0, 0, 0, 0);
+  matchPeriod = loginDate && loginDate >= monday;
+} else if (filterPeriod === 'month') {
+  matchPeriod =
+    loginDate &&
+    loginDate.getMonth() === now.getMonth() &&
+    loginDate.getFullYear() === now.getFullYear();
+} else if (filterPeriod === 'custom') {
+  matchPeriod =
+    (!filterStartDate || loginDate >= new Date(filterStartDate)) &&
+    (!filterEndDate || loginDate <= new Date(filterEndDate));
+}
+
+return matchText && matchRole && matchPeriod;
+})
+
                         .map((user, index) => (
                           <Zoom in timeout={300 + index * 100} key={index}>
                             <StyledListItem>
@@ -1026,6 +1231,9 @@ setNotifications((prev) => [
                   )}
                 </GlassCard>
               </Fade>
+
+{/* 📊 Weekly Login Overview */}
+
 
               {/* Enhanced All Users Table */}
               <Fade in timeout={1200}>
@@ -1174,6 +1382,75 @@ setNotifications((prev) => [
                   </TableContainer>
                 </GlassCard>
               </Fade>
+{/* 📊 Weekly Login Overview (moved below tables) */}
+<div id="weeklyChartSection">
+  <Fade in={showChart} timeout={900}>
+    <GlassCard sx={{ p: 3.5, mt: 5, mb: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
+      >
+        <Typography variant="h6" fontWeight="700" color="text.primary">
+          Weekly Login Overview
+        </Typography>
+
+        <Button
+          onClick={() => setShowChart(false)}
+          variant="outlined"
+          color="success"
+          size="small"
+          sx={{
+            textTransform: 'none',
+            borderRadius: 2,
+            px: 2,
+            fontWeight: 700,
+          }}
+        >
+          Hide Chart
+        </Button>
+      </Box>
+
+      <Box sx={{ height: 260 }}>
+        <Bar
+          data={weeklyData}
+          options={{
+            responsive: true,
+            animation: {
+              duration: 1200,
+              easing: 'easeOutQuart',
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#1a1a1a',
+                titleColor: '#fff',
+                bodyColor: '#ddd',
+                borderWidth: 1,
+                borderColor: '#2d9f47',
+                cornerRadius: 6,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 },
+                grid: { color: 'rgba(0,0,0,0.05)' },
+              },
+              x: {
+                grid: { display: false },
+              },
+            },
+          }}
+        />
+      </Box>
+    </GlassCard>
+  </Fade>
+</div>
+
             </>
           ) : (
             /* Enhanced Employee View */
