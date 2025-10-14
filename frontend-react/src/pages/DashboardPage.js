@@ -1075,17 +1075,25 @@ if (!data) {
     variant="outlined"
     startIcon={<TrendingUpIcon />}
     onClick={() => {
-      const chartSection = document.getElementById('weeklyChartSection');
-      chartSection?.scrollIntoView({ behavior: 'smooth' });
-      setShowChart(true);
+      setShowChart(true); // show the chart
+      setTimeout(() => {
+        const chartSection = document.getElementById('weeklyChartSection');
+        if (chartSection) {
+          chartSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150); // delay ensures fade starts first
     }}
     sx={{
       textTransform: 'none',
       borderRadius: 2,
-      px: 2.5,
+      px: 2.8,
       fontWeight: 700,
+      fontSize: '0.95rem',
       color: '#1a7a35',
       borderColor: '#2d9f47',
+      display: showChart ? 'none' : 'flex', // hide button when chart visible
+      alignItems: 'center',
+      gap: 1,
       '&:hover': {
         backgroundColor: 'rgba(45,159,71,0.08)',
         borderColor: '#1a7a35',
@@ -1095,6 +1103,7 @@ if (!data) {
     View Weekly Overview
   </Button>
 </Box>
+
 
 
               {/* Enhanced Recent Login Activity Card */}
@@ -1383,73 +1392,130 @@ return matchText && matchRole && matchPeriod;
                 </GlassCard>
               </Fade>
 {/* 📊 Weekly Login Overview (moved below tables) */}
-<div id="weeklyChartSection">
-  <Fade in={showChart} timeout={900}>
-    <GlassCard sx={{ p: 3.5, mt: 5, mb: 3 }}>
-      <Box
+{showChart && (
+  <div id="weeklyChartSection">
+    <Fade in={showChart} timeout={800}>
+      <GlassCard
         sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
+          p: 4,
+          mt: 5,
+          mb: 3,
+          border: '1px solid rgba(45, 159, 71, 0.15)',
+          boxShadow: '0 12px 40px rgba(45,159,71,0.12)',
+          backdropFilter: 'blur(25px)',
+          transition: 'all 0.4s ease',
+          '&:hover': {
+            boxShadow: '0 16px 50px rgba(45,159,71,0.25)',
+            transform: 'translateY(-4px)',
+          },
         }}
       >
-        <Typography variant="h6" fontWeight="700" color="text.primary">
-          Weekly Login Overview
-        </Typography>
-
-        <Button
-          onClick={() => setShowChart(false)}
-          variant="outlined"
-          color="success"
-          size="small"
+        {/* Header */}
+        <Box
           sx={{
-            textTransform: 'none',
-            borderRadius: 2,
-            px: 2,
-            fontWeight: 700,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 3,
           }}
         >
-          Hide Chart
-        </Button>
-      </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 6px 20px rgba(45, 159, 71, 0.3)',
+              }}
+            >
+              <TrendingUpIcon sx={{ color: 'white', fontSize: 26 }} />
+            </Box>
+            <Box>
+              <Typography variant="h5" fontWeight="800" color="text.primary">
+                Weekly Login Overview
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Daily login activity trends
+              </Typography>
+            </Box>
+          </Box>
 
-      <Box sx={{ height: 260 }}>
-        <Bar
-          data={weeklyData}
-          options={{
-            responsive: true,
-            animation: {
-              duration: 1200,
-              easing: 'easeOutQuart',
-            },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: '#1a1a1a',
-                titleColor: '#fff',
-                bodyColor: '#ddd',
-                borderWidth: 1,
-                borderColor: '#2d9f47',
-                cornerRadius: 6,
+          <Button
+            onClick={() => setShowChart(false)}
+            variant="outlined"
+            color="success"
+            size="small"
+            sx={{
+              textTransform: 'none',
+              borderRadius: 2,
+              px: 2.5,
+              fontWeight: 700,
+              boxShadow: '0 3px 10px rgba(45,159,71,0.15)',
+              '&:hover': {
+                backgroundColor: 'rgba(45,159,71,0.08)',
               },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { stepSize: 1 },
-                grid: { color: 'rgba(0,0,0,0.05)' },
+            }}
+          >
+            Hide Chart
+          </Button>
+        </Box>
+
+        {/* Chart */}
+        <Box sx={{ height: 320 }}>
+          <Bar
+            data={weeklyData}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: {
+                duration: 1200,
+                easing: 'easeOutQuart',
               },
-              x: {
-                grid: { display: false },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: '#0f1419',
+                  titleColor: '#fff',
+                  bodyColor: '#e0e0e0',
+                  borderWidth: 1,
+                  borderColor: '#2d9f47',
+                  cornerRadius: 8,
+                  padding: 12,
+                },
               },
-            },
-          }}
-        />
-      </Box>
-    </GlassCard>
-  </Fade>
-</div>
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#333',
+                    font: { weight: '600' },
+                    stepSize: 1,
+                  },
+                  grid: {
+                    color: 'rgba(0,0,0,0.05)',
+                    drawBorder: false,
+                  },
+                },
+                x: {
+                  ticks: {
+                    color: '#444',
+                    font: { weight: '700' },
+                  },
+                  grid: { display: false },
+                },
+              },
+            }}
+          />
+        </Box>
+      </GlassCard>
+    </Fade>
+  </div>
+)}
+
 
             </>
           ) : (
