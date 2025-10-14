@@ -677,7 +677,7 @@ export default function ReportsPage() {
                       {['Name', 'Role', 'Email', 'Last Login'].map((h) => (
                         <TableCell
                           key={h}
-                          sx={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', py: 2.5 }}
+                          sx={{ color: 'white', fontWeight: 800, fontSize: '1.1rem', py: 3 }}
                         >
                           {h}
                         </TableCell>
@@ -706,16 +706,17 @@ export default function ReportsPage() {
                         .map((emp, idx) => (
                           <Zoom in timeout={200 + idx * 80} key={emp.id}>
                             <StyledTableRow>
-                              <TableCell sx={{ fontWeight: 700, fontSize: '0.95rem', py: 2 }}>
+                              <TableCell sx={{ fontWeight: 700, fontSize: '1.05rem', py: 2.5 }}>
                                 {emp.name}
                               </TableCell>
-                              <TableCell sx={{ fontSize: '0.95rem', py: 2 }}>
+                              <TableCell sx={{ fontSize: '1.05rem', py: 2.5 }}>
                                 <Chip
                                   label={emp.role}
-                                  size="small"
+                                  size="medium"
                                   sx={{
                                     textTransform: 'capitalize',
                                     fontWeight: 700,
+                                    fontSize: '0.9rem',
                                     bgcolor:
                                       emp.role === 'admin'
                                         ? 'rgba(45, 159, 71, 0.15)'
@@ -727,10 +728,10 @@ export default function ReportsPage() {
                                   }}
                                 />
                               </TableCell>
-                              <TableCell sx={{ fontSize: '0.95rem', color: 'text.secondary', py: 2 }}>
+                              <TableCell sx={{ fontSize: '1.05rem', color: 'text.secondary', py: 2.5 }}>
                                 {emp.email}
                               </TableCell>
-                              <TableCell sx={{ fontSize: '0.95rem', color: 'text.secondary', py: 2 }}>
+                              <TableCell sx={{ fontSize: '1.05rem', color: 'text.secondary', py: 2.5 }}>
                                 {formatDate(emp.last_login)}
                               </TableCell>
                             </StyledTableRow>

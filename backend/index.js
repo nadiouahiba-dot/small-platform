@@ -1,3 +1,8 @@
+// =====================
+// ✅ Load environment variables
+// =====================
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -13,8 +18,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Secret key (store in .env for production)
-const SECRET_KEY = 'your-secret-key';
+// ✅ Use the secret key from .env (fallback for dev)
+const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
 
 // ================= Middleware =================
 function authenticateToken(req, res, next) {
@@ -38,6 +43,12 @@ app.use('/api/users', usersRoutes); // ✅ NEW users routes
 // ================= Default Route =================
 app.get('/', (req, res) => {
   res.json({ message: '✅ API is running successfully.' });
+});
+
+// ✅ Global error handler
+app.use((err, req, res, next) => {
+  console.error('💥 Uncaught backend error:', err.stack);
+  res.status(500).json({ message: 'Server crashed', error: err.message });
 });
 
 // ================= Start Server =================

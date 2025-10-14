@@ -18,7 +18,6 @@ import {
   CardContent,
   Divider,
   Avatar,
-  Grid,
   AppBar,
   Toolbar,
   IconButton,
@@ -273,10 +272,19 @@ const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 const [userToDelete, setUserToDelete] = useState(null);
 
 // ✅ Persistent notifications shared across all pages
+const email = localStorage.getItem('email'); // we'll use this as key
+
 const [notifications, setNotifications] = useState(() => {
-  const saved = localStorage.getItem('notifications');
-  return saved ? JSON.parse(saved) : [];
+  // Admin: load global notifications
+  if (role === 'admin') {
+    const saved = localStorage.getItem('notifications');
+    return saved ? JSON.parse(saved) : [];
+  }
+  // Employee: load personal notifications
+  const personal = localStorage.getItem(`notifications_${email}`);
+  return personal ? JSON.parse(personal) : [];
 });
+
 
 const [anchorNotif, setAnchorNotif] = useState(null);
 
@@ -292,8 +300,13 @@ useEffect(() => {
 
 // ✅ Keep notifications in localStorage even after refresh
 useEffect(() => {
-  localStorage.setItem('notifications', JSON.stringify(notifications));
-}, [notifications]);
+  if (role === 'admin') {
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+  } else if (email) {
+    localStorage.setItem(`notifications_${email}`, JSON.stringify(notifications));
+  }
+}, [notifications, role, email]);
+
 
 
 
@@ -377,10 +390,18 @@ const handleNotifClose = () => {
         });
         setToast({ open: true, message: 'User created successfully! ✓', severity: 'success' });
       }
+// 🛠 Dynamic notification based on action
 setNotifications((prev) => [
-  { id: Date.now(), message: `✅ New user "${form.name}" has been added.`, time: new Date().toLocaleTimeString() },
+  {
+    id: Date.now(),
+    message: editingUser
+      ? `✏️ User "${form.name}" has been modified.`
+      : `✅ New user "${form.name}" has been added.`,
+    time: new Date().toLocaleTimeString(),
+  },
   ...prev,
 ]);
+
 
       closeModal();
       const res = await axios.get(`${BASE_URL}/dashboard`, {
@@ -768,44 +789,58 @@ setNotifications((prev) => [
             <>
               {/* Enhanced Stats Card */}
               <Fade in timeout={600}>
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                  <Grid item xs={12} md={6}>
-                    <StatsCard>
-                      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 3, p: 3.5 }}>
-                        <Box
-                          sx={{
-                            width: 90,
-                            height: 90,
-                            borderRadius: '22px',
-                            background: 'rgba(255,255,255,0.25)',
-                            backdropFilter: 'blur(12px)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                          }}
-                        >
-                          <PeopleIcon sx={{ fontSize: 45 }} />
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="h2" fontWeight="800" sx={{ letterSpacing: '-2px', mb: 0.5 }}>
-                            {data.totalEmployees || 0}
-                          </Typography>
-                          <Typography variant="h6" sx={{ opacity: 0.95, fontWeight: 600, mb: 1 }}>
-                            Total Employees
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <TrendingUpIcon sx={{ fontSize: 18 }} />
-                            <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                              Active workforce
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </StatsCard>
-                  </Grid>
-                </Grid>
-              </Fade>
+  <Box
+    sx={{
+      display: 'flex',
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+      mb: 1, 
+      mt: 1, 
+    }}
+  >
+    <StatsCard
+      sx={{
+        width: 360,     
+        height: 125,    
+        ml: 0,          
+      }}
+    >
+
+
+      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.8 }}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: '12px',
+            background: 'rgba(255,255,255,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
+          }}
+        >
+          <PeopleIcon sx={{ fontSize: 28 }} />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h5" fontWeight="800" sx={{ letterSpacing: '-0.5px', mb: 0.3 }}>
+            {data.totalEmployees || 0}
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 600 }}>
+            Total Employees
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+            <TrendingUpIcon sx={{ fontSize: 14 }} />
+            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+              Active workforce
+            </Typography>
+          </Box>
+        </Box>
+      </CardContent>
+    </StatsCard>
+  </Box>
+</Fade>
+
 
               {/* Enhanced Filter Controls */}
               <Fade in timeout={800}>
@@ -944,26 +979,39 @@ setNotifications((prev) => [
                               >
                                 <PersonIcon sx={{ fontSize: 26 }} />
                               </Avatar>
-                              <ListItemText
-                                primary={
-                                  <Typography fontWeight="700" sx={{ fontSize: '1.1rem', mb: 0.5 }}>
-                                    {user.name}
-                                  </Typography>
-                                }
-                                secondary={
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                    <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
-                                      {user.last_login
-                                        ? new Date(user.last_login).toLocaleString('en-GB', {
-                                            dateStyle: 'medium',
-                                            timeStyle: 'short',
-                                          })
-                                        : 'Never logged in'}
-                                    </Typography>
-                                  </Box>
-                                }
-                              />
+<ListItemText
+  primaryTypographyProps={{ component: 'div' }}
+  secondaryTypographyProps={{ component: 'span' }}
+  primary={
+    <Typography
+      component="div"
+      fontWeight="700"
+      sx={{ fontSize: '1.1rem', mb: 0.5 }}
+    >
+      {user.name}
+    </Typography>
+  }
+  secondary={
+    <Box
+      component="div"
+      sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}
+    >
+      <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+      <Typography
+        component="span"
+        variant="body2"
+        color="text.secondary"
+        sx={{ fontSize: '0.95rem' }}
+      >
+        {user.last_login
+          ? new Date(user.last_login).toLocaleString()
+          : 'Never logged in'}
+      </Typography>
+    </Box>
+  }
+/>
+
+
                             </StyledListItem>
                           </Zoom>
                         ))}
@@ -1002,8 +1050,24 @@ setNotifications((prev) => [
                     </Typography>
                   </Box>
 
-                  <TableContainer component={GlassPaper} sx={{ maxHeight: 700, overflowY: 'auto' }}>
-                    <Table size="small" aria-label="users table">
+                  <TableContainer
+  component={GlassPaper}
+  sx={{
+    maxHeight: 800,
+    overflowY: 'auto',
+    '& .MuiTableCell-root': {
+      fontSize: '1.1rem', // ⬅️ Bigger text
+      py: 2.5, // ⬅️ More vertical spacing
+    },
+    '& .MuiTableHead-root .MuiTableCell-root': {
+      fontSize: '1.15rem', // ⬅️ Bigger headers
+      fontWeight: 800,
+      py: 2.8,
+    },
+  }}
+>
+  <Table size="medium" aria-label="users table">
+
                       <TableHead>
                         <TableRow sx={{ bgcolor: 'rgba(45, 159, 71, 0.08)' }}>
                           <TableCell sx={{ fontWeight: 800, fontSize: '0.95rem', py: 2 }}>Name</TableCell>
@@ -1039,22 +1103,24 @@ setNotifications((prev) => [
                                   <TableCell sx={{ py: 2 }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                       <Avatar
-                                        sx={{
-                                          width: 40,
-                                          height: 40,
-                                          background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-                                          boxShadow: '0 4px 12px rgba(45, 159, 71, 0.25)',
-                                        }}
-                                      >
+  sx={{
+    width: 55, // ⬅️ larger avatar
+    height: 55,
+    background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+    boxShadow: '0 4px 12px rgba(45, 159, 71, 0.25)',
+  }}
+>
+
                                         <PersonIcon fontSize="small" />
                                       </Avatar>
-                                      <Typography fontWeight={700} sx={{ fontSize: '0.95rem' }}>
+                                      <Typography fontWeight={700} sx={{ fontSize: '1.1rem' }}>
                                         {u.name}
                                       </Typography>
+
                                     </Box>
                                   </TableCell>
                                   <TableCell sx={{ py: 2 }}>
-                                    <Typography sx={{ fontSize: '0.9rem' }}>{u.email}</Typography>
+                                    <Typography sx={{ fontSize: '1rem' }}>{u.email}</Typography>
                                   </TableCell>
                                   <TableCell sx={{ py: 2 }}>
                                     <Chip
@@ -1076,7 +1142,7 @@ setNotifications((prev) => [
                                   </TableCell>
                                   <TableCell align="right" sx={{ py: 2 }}>
                                     <Tooltip title="Edit User" arrow>
-                                      <ActionIconButton onClick={() => openEditModal(u)} size="small">
+                                      <ActionIconButton onClick={() => openEditModal(u)} size="medium">
                                         <EditIcon fontSize="small" />
                                       </ActionIconButton>
                                     </Tooltip>
