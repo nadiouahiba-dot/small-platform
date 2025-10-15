@@ -1,5 +1,5 @@
 // src/pages/ReportsPage.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -250,39 +250,42 @@ const periodLabel = () => {
   }[filterPeriod] || '';
 };
 
-const filteredEmployees = employees.filter((emp) => {
-  const matchText =
-    (emp.name || '').toLowerCase().includes(filterText) ||
-    (emp.email || '').toLowerCase().includes(filterText);
+const filteredEmployees = useMemo(() => {
+  return employees.filter((emp) => {
+    const matchText =
+      (emp.name || '').toLowerCase().includes(filterText) ||
+      (emp.email || '').toLowerCase().includes(filterText);
 
-  const matchRole = filterRole === 'all' || emp.role === filterRole;
+    const matchRole = filterRole === 'all' || emp.role === filterRole;
 
-  const loginDate = emp.last_login ? new Date(emp.last_login) : null;
-  const now = new Date();
+    const loginDate = emp.last_login ? new Date(emp.last_login) : null;
+    const now = new Date();
 
-  let matchPeriod = true;
-  if (filterPeriod === 'today') {
-    matchPeriod = !!loginDate && loginDate.toDateString() === now.toDateString();
-  } else if (filterPeriod === 'week') {
-    const dow = now.getDay();
-    const diff = dow === 0 ? 6 : dow - 1; // Monday start
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - diff);
-    monday.setHours(0, 0, 0, 0);
-    matchPeriod = !!loginDate && loginDate >= monday;
-  } else if (filterPeriod === 'month') {
-    matchPeriod =
-      !!loginDate &&
-      loginDate.getMonth() === now.getMonth() &&
-      loginDate.getFullYear() === now.getFullYear();
-  } else if (filterPeriod === 'custom') {
-    const startOk = !filterStartDate || (loginDate && loginDate >= new Date(filterStartDate));
-    const endOk   = !filterEndDate   || (loginDate && loginDate <= new Date(filterEndDate));
-    matchPeriod = startOk && endOk;
-  }
+    let matchPeriod = true;
+    if (filterPeriod === 'today') {
+      matchPeriod = !!loginDate && loginDate.toDateString() === now.toDateString();
+    } else if (filterPeriod === 'week') {
+      const dow = now.getDay();
+      const diff = dow === 0 ? 6 : dow - 1; // Monday start
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - diff);
+      monday.setHours(0, 0, 0, 0);
+      matchPeriod = !!loginDate && loginDate >= monday;
+    } else if (filterPeriod === 'month') {
+      matchPeriod =
+        !!loginDate &&
+        loginDate.getMonth() === now.getMonth() &&
+        loginDate.getFullYear() === now.getFullYear();
+    } else if (filterPeriod === 'custom') {
+      const startOk = !filterStartDate || (loginDate && loginDate >= new Date(filterStartDate));
+      const endOk   = !filterEndDate   || (loginDate && loginDate <= new Date(filterEndDate));
+      matchPeriod = startOk && endOk;
+    }
 
-  return matchText && matchRole && matchPeriod;
-});
+    return matchText && matchRole && matchPeriod;
+  });
+}, [employees, filterText, filterRole, filterPeriod, filterStartDate, filterEndDate]);
+
 
 
 // put this helper above exportToPDF
@@ -689,14 +692,11 @@ const exportToCSV = () => {
               <SearchBox>
                 <SearchIcon sx={{ opacity: 0.9 }} />
                 <InputBase
-                  placeholder="Search..."
-                  sx={{
-                    ml: 1,
-                    color: 'white',
-                    '::placeholder': { opacity: 0.9 },
-                    minWidth: '180px',
-                  }}
-                />
+  placeholder="Search..."
+  value={filterText}
+  onChange={(e) => setFilterText(e.target.value.toLowerCase())}
+  sx={{ ml: 1, color: 'white', '::placeholder': { opacity: 0.9 }, minWidth: '180px' }}
+/>
               </SearchBox>
 
               <Tooltip title="Notifications" arrow>
@@ -945,75 +945,52 @@ const exportToCSV = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {employees.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
-                          <PeopleIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2, opacity: 0.4 }} />
-                          <Typography color="text.secondary" sx={{ fontSize: '1.05rem', fontWeight: 500 }}>
-                            No employees found
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      employees
-                        .filter((emp) => {
-  const matchText =
-    emp.name?.toLowerCase().includes(filterText) ||
-    emp.email?.toLowerCase().includes(filterText);
+  {filteredEmployees.length === 0 ? (
+    <TableRow>
+      <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
+        <PeopleIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2, opacity: 0.4 }} />
+        <Typography color="text.secondary" sx={{ fontSize: '1.05rem', fontWeight: 500 }}>
+          No employees found
+        </Typography>
+      </TableCell>
+    </TableRow>
+  ) : (
+    filteredEmployees.map((emp, idx) => (
+      <Zoom in timeout={200 + idx * 80} key={emp.id ?? emp.email ?? idx}>
+        <StyledTableRow>
+          <TableCell sx={{ fontWeight: 700, fontSize: '1.05rem', py: 2.5 }}>
+            {emp.name}
+          </TableCell>
+          <TableCell sx={{ fontSize: '1.05rem', py: 2.5 }}>
+            <Chip
+              label={emp.role}
+              size="medium"
+              sx={{
+                textTransform: 'capitalize',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                bgcolor: emp.role === 'admin'
+                  ? 'rgba(45, 159, 71, 0.15)'
+                  : 'rgba(25, 118, 210, 0.15)',
+                color: emp.role === 'admin' ? '#1a7a35' : '#1565c0',
+                border: `1px solid ${
+                  emp.role === 'admin' ? 'rgba(45, 159, 71, 0.3)' : 'rgba(25, 118, 210, 0.3)'
+                }`,
+              }}
+            />
+          </TableCell>
+          <TableCell sx={{ fontSize: '1.05rem', color: 'text.secondary', py: 2.5 }}>
+            {emp.email}
+          </TableCell>
+          <TableCell sx={{ fontSize: '1.05rem', color: 'text.secondary', py: 2.5 }}>
+            {formatDate(emp.last_login)}
+          </TableCell>
+        </StyledTableRow>
+      </Zoom>
+    ))
+  )}
+</TableBody>
 
-  const matchRole = filterRole === 'all' || emp.role === filterRole;
-
-  // Date range filter on emp.last_login
-  const matchDate = (() => {
-    if (!filterStartDate && !filterEndDate) return true;
-    if (!emp.last_login) return false;                 // no login date to compare
-
-    const t = new Date(emp.last_login).getTime();
-    const tStart = filterStartDate ? new Date(filterStartDate).setHours(0, 0, 0, 0) : -Infinity;
-    const tEnd   = filterEndDate   ? new Date(filterEndDate).setHours(23, 59, 59, 999) : Infinity;
-
-    return t >= tStart && t <= tEnd;
-  })();
-
-  return matchText && matchRole && matchDate;
-})
-
-                        .map((emp, idx) => (
-                          <Zoom in timeout={200 + idx * 80} key={emp.id}>
-                            <StyledTableRow>
-                              <TableCell sx={{ fontWeight: 700, fontSize: '1.05rem', py: 2.5 }}>
-                                {emp.name}
-                              </TableCell>
-                              <TableCell sx={{ fontSize: '1.05rem', py: 2.5 }}>
-                                <Chip
-                                  label={emp.role}
-                                  size="medium"
-                                  sx={{
-                                    textTransform: 'capitalize',
-                                    fontWeight: 700,
-                                    fontSize: '0.9rem',
-                                    bgcolor:
-                                      emp.role === 'admin'
-                                        ? 'rgba(45, 159, 71, 0.15)'
-                                        : 'rgba(25, 118, 210, 0.15)',
-                                    color: emp.role === 'admin' ? '#1a7a35' : '#1565c0',
-                                    border: `1px solid ${
-                                      emp.role === 'admin' ? 'rgba(45, 159, 71, 0.3)' : 'rgba(25, 118, 210, 0.3)'
-                                    }`,
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell sx={{ fontSize: '1.05rem', color: 'text.secondary', py: 2.5 }}>
-                                {emp.email}
-                              </TableCell>
-                              <TableCell sx={{ fontSize: '1.05rem', color: 'text.secondary', py: 2.5 }}>
-                                {formatDate(emp.last_login)}
-                              </TableCell>
-                            </StyledTableRow>
-                          </Zoom>
-                        ))
-                    )}
-                  </TableBody>
                 </Table>
               </TableContainer>
             </GlassCard>
