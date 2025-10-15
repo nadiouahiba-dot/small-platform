@@ -172,6 +172,12 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // 🧭 Period Filter (same as Dashboard)
+const [filterPeriod, setFilterPeriod] = useState('week'); // default = this week
+const [filterStartDate, setFilterStartDate] = useState('');
+const [filterEndDate, setFilterEndDate] = useState('');
+
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
@@ -196,6 +202,19 @@ export default function ReportsPage() {
       });
   }, []);
 
+  // 🗓️ Auto-select current week on load (Dashboard-style)
+useEffect(() => {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday start
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - diff);
+
+  setFilterPeriod('week'); // keep UI in sync with Dashboard
+  setFilterStartDate(monday.toISOString().split('T')[0]);
+  setFilterEndDate(now.toISOString().split('T')[0]);
+}, []);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
@@ -206,6 +225,8 @@ export default function ReportsPage() {
     navigate('/admin-dashboard');
   };
 
+
+
   // ===== EXPORTS =====
   const formatDate = (dateStr) =>
     dateStr
@@ -215,63 +236,237 @@ export default function ReportsPage() {
         })
       : 'Never logged in';
 
-  const exportToPDF = () => {
-  const doc = new jsPDF();
-  doc.text('Employees Report', 14, 15);
+// ----- central filter + label (use these everywhere) -----
+const periodLabel = () => {
+  if (filterPeriod === 'custom') {
+    const a = filterStartDate || '...';
+    const b = filterEndDate || '...';
+    return ` (${a} → ${b})`;
+  }
+  return {
+    today: ' (Today)',
+    week: ' (This Week)',
+    month: ' (This Month)',
+  }[filterPeriod] || '';
+};
+
+const filteredEmployees = employees.filter((emp) => {
+  const matchText =
+    (emp.name || '').toLowerCase().includes(filterText) ||
+    (emp.email || '').toLowerCase().includes(filterText);
+
+  const matchRole = filterRole === 'all' || emp.role === filterRole;
+
+  const loginDate = emp.last_login ? new Date(emp.last_login) : null;
+  const now = new Date();
+
+  let matchPeriod = true;
+  if (filterPeriod === 'today') {
+    matchPeriod = !!loginDate && loginDate.toDateString() === now.toDateString();
+  } else if (filterPeriod === 'week') {
+    const dow = now.getDay();
+    const diff = dow === 0 ? 6 : dow - 1; // Monday start
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - diff);
+    monday.setHours(0, 0, 0, 0);
+    matchPeriod = !!loginDate && loginDate >= monday;
+  } else if (filterPeriod === 'month') {
+    matchPeriod =
+      !!loginDate &&
+      loginDate.getMonth() === now.getMonth() &&
+      loginDate.getFullYear() === now.getFullYear();
+  } else if (filterPeriod === 'custom') {
+    const startOk = !filterStartDate || (loginDate && loginDate >= new Date(filterStartDate));
+    const endOk   = !filterEndDate   || (loginDate && loginDate <= new Date(filterEndDate));
+    matchPeriod = startOk && endOk;
+  }
+
+  return matchText && matchRole && matchPeriod;
+});
+
+
+// put this helper above exportToPDF
+const loadImage = (src) =>
+  new Promise((res, rej) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = src;
+  });
+
+const GREEN_DARK = [26, 122, 53]; // #1a7a35
+const GREEN = [45, 159, 71];      // #2d9f47
+const GREY_BORDER = [230, 234, 239]; // light grey to match app cards
+
+const mm = (v) => v; // (jsPDF default unit is mm)
+
+const exportToPDF = async () => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const left = mm(14);
+  const right = mm(14);
+  const top = mm(16);
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // metadata
+  doc.setProperties({
+    title: 'Employees Report',
+    subject: 'Employees last-login report',
+    author: 'Marabes Admin',
+  });
+
+  // header “glass card” strip
+  doc.setDrawColor(...GREY_BORDER);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(left - 4, top - 6, pageWidth - left - right + 8, 24, 3, 3, 'FD');
+
+  // logo (optional; will skip if it fails to load)
+  try {
+    const logo = await loadImage(MarabesLogo);
+    doc.addImage(logo, 'PNG', left - 1, top - 4, 14, 14);
+  } catch {}
+
+  // title + subtitle
+  doc.setTextColor(17, 24, 39); // slate-900-ish
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(`Employees Report${periodLabel()}`, left + 16, top + 2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(100, 116, 139); // slate-500-ish
+  doc.text(
+    `Generated ${new Date().toLocaleString()}`,
+    left + 16,
+    top + 8
+  );
+
+  // table
   autoTable(doc, {
-    startY: 20,
+    startY: top + 18,
     head: [['Name', 'Role', 'Email', 'Last Login']],
-    body: employees.map((e) => [
-      e.name,
-      e.role,
-      e.email,
+    body: filteredEmployees.map((e) => [
+      e.name || '',
+      e.role || '',
+      e.email || '',
       formatDate(e.last_login),
     ]),
+    // global styles
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,
+      cellPadding: 6,
+      lineColor: GREY_BORDER,
+      lineWidth: 0.2,
+      valign: 'middle',
+    },
+    headStyles: {
+      fillColor: GREEN_DARK,       // header bg
+      textColor: 255,              // white text
+      fontStyle: 'bold',
+      halign: 'left',
+    },
+    bodyStyles: {
+      textColor: [31, 41, 55],     // slate-700
+    },
+    alternateRowStyles: {
+      fillColor: [245, 247, 250],  // subtle zebra
+    },
+    columnStyles: {
+      0: { cellWidth: 45 },
+      1: { cellWidth: 25, halign: 'left' },
+      2: { cellWidth: 70 },
+      3: { cellWidth: 40 },
+    },
+    margin: { left, right },
+    tableWidth: pageWidth - left - right,
+    theme: 'grid',
+    didDrawPage: (data) => {
+      // footer
+      const page = doc.internal.getNumberOfPages();
+      doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.text(
+        `Page ${page}`,
+        pageWidth - right,
+        doc.internal.pageSize.getHeight() - 8,
+        { align: 'right' }
+      );
+
+      // subtle top accent line in green (matches app)
+      doc.setDrawColor(...GREEN);
+      doc.setLineWidth(0.6);
+      doc.line(left - 4, top - 6, pageWidth - right + 4, top - 6);
+      doc.setLineWidth(0.2);
+      doc.setDrawColor(...GREY_BORDER);
+    },
   });
+
   doc.save('employees-report.pdf');
 
-  // ✅ Save notification globally for Dashboard
+  // keep your notification
   const newNotif = {
     id: Date.now(),
     message: '📄 Employees report exported to PDF',
     time: new Date().toLocaleTimeString(),
   };
-
   const existing = JSON.parse(localStorage.getItem('notifications') || '[]');
-  const updated = [newNotif, ...existing].slice(0, 15);
-  localStorage.setItem('notifications', JSON.stringify(updated));
+  localStorage.setItem('notifications', JSON.stringify([newNotif, ...existing].slice(0, 15)));
 };
 
 
-  const exportToCSV = () => {
+
+
+
+const exportToCSV = () => {
+  // CSV helpers
+  const DELIM = ',';                 // delimiter
+  const EOL = '\r\n';                // Windows-friendly newlines for Excel
+  const csvEscape = (val) => {
+    if (val === null || val === undefined) return '""';
+    const s = String(val).replace(/"/g, '""'); // escape quotes
+    return `"${s}"`;                           // wrap every field in quotes
+  };
+
+  // rows to export (title row, blank row, header, body)
   const rows = [
+    [`Employees Report${periodLabel()}`],
+    [],
     ['Name', 'Role', 'Email', 'Last Login'],
-    ...employees.map((e) => [
-      e.name,
-      e.role,
-      e.email,
+    ...filteredEmployees.map((e) => [
+      e.name || '',
+      e.role || '',
+      e.email || '',
+      // keep your nice format even though it has a comma — we're quoting it now
       formatDate(e.last_login),
     ]),
   ];
-  const blob = new Blob([rows.map((r) => r.join(',')).join('\n')], {
-    type: 'text/csv;charset=utf-8;',
-  });
+
+  // Build CSV string with BOM so Excel detects UTF-8
+  const csvString =
+    '\uFEFF' +
+    rows
+      .map((r) => r.map(csvEscape).join(DELIM))
+      .join(EOL);
+
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'employees-report.csv';
   a.click();
 
-  // ✅ Save notification globally for Dashboard
+  // notification
   const newNotif = {
     id: Date.now(),
     message: '📊 Employees report exported to CSV',
     time: new Date().toLocaleTimeString(),
   };
-
   const existing = JSON.parse(localStorage.getItem('notifications') || '[]');
-  const updated = [newNotif, ...existing].slice(0, 15);
-  localStorage.setItem('notifications', JSON.stringify(updated));
+  localStorage.setItem('notifications', JSON.stringify([newNotif, ...existing].slice(0, 15)));
 };
+
+
+
 
 
   if (error) {
@@ -614,57 +809,122 @@ export default function ReportsPage() {
           {/* Enhanced Search & Filter Controls */}
           <Fade in timeout={800}>
             <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: 2,
-                mb: 3,
-                flexWrap: 'wrap',
-              }}
-            >
-              <TextField
-                label="Search employees"
-                variant="outlined"
-                size="small"
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value.toLowerCase())}
-                sx={{
-                  width: 240,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)',
-                    },
-                  },
-                }}
-              />
+  sx={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 2,
+    mb: 3,
+    flexWrap: 'wrap',
+  }}
+>
+  {/* Search */}
+  <TextField
+    label="Search employees"
+    variant="outlined"
+    size="small"
+    value={filterText}
+    onChange={(e) => setFilterText(e.target.value.toLowerCase())}
+    sx={{
+      width: 240,
+      '& .MuiOutlinedInput-root': {
+        borderRadius: 2,
+        transition: 'all 0.3s ease',
+        '&:hover': { boxShadow: '0 4px 12px rgba(45,159,71,0.15)' },
+      },
+    }}
+  />
 
-              <TextField
-                label="Filter by role"
-                variant="outlined"
-                size="small"
-                select
-                SelectProps={{ native: true }}
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                sx={{
-                  width: 200,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      boxShadow: '0 4px 12px rgba(45, 159, 71, 0.15)',
-                    },
-                  },
-                }}
-              >
-                <option value="all">All Roles</option>
-                <option value="admin">Admin</option>
-                <option value="employee">Employee</option>
-              </TextField>
-            </Box>
+  {/* Role */}
+  <TextField
+    label="Filter by role"
+    variant="outlined"
+    size="small"
+    select
+    SelectProps={{ native: true }}
+    value={filterRole}
+    onChange={(e) => setFilterRole(e.target.value)}
+    sx={{
+      width: 200,
+      '& .MuiOutlinedInput-root': {
+        borderRadius: 2,
+        transition: 'all 0.3s ease',
+        '&:hover': { boxShadow: '0 4px 12px rgba(45,159,71,0.15)' },
+      },
+    }}
+  >
+    <option value="all">All Roles</option>
+    <option value="admin">Admin</option>
+    <option value="employee">Employee</option>
+  </TextField>
+
+  {/* Period (like Dashboard) */}
+  <TextField
+    select
+    label="Period"
+    value={filterPeriod}
+    onChange={(e) => setFilterPeriod(e.target.value)}
+    size="small"
+    SelectProps={{ native: true }}
+    sx={{
+      width: 200,
+      '& .MuiOutlinedInput-root': {
+        borderRadius: 2,
+        transition: 'all 0.3s ease',
+        '&:hover': { boxShadow: '0 4px 12px rgba(45,159,71,0.15)' },
+      },
+    }}
+  >
+    <option value="today">Today</option>
+    <option value="week">This Week</option>
+    <option value="month">This Month</option>
+    <option value="custom">Custom Range</option>
+  </TextField>
+
+  {/* Only when custom */}
+  {filterPeriod === 'custom' && (
+    <>
+      <TextField
+        label="From"
+        type="date"
+        size="small"
+        value={filterStartDate}
+        onChange={(e) => setFilterStartDate(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        sx={{ width: 180 }}
+      />
+      <TextField
+        label="To"
+        type="date"
+        size="small"
+        value={filterEndDate}
+        onChange={(e) => setFilterEndDate(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        sx={{ width: 180 }}
+      />
+    </>
+  )}
+
+  <Button
+    variant="outlined"
+    color="success"
+    onClick={() => {
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - diff);
+      setFilterPeriod('week');
+      setFilterStartDate(monday.toISOString().split('T')[0]);
+      setFilterEndDate(now.toISOString().split('T')[0]);
+    }}
+    sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5, py: 1 }}
+  >
+    Reset to This Week
+  </Button>
+</Box>
+
+
           </Fade>
 
           {/* Enhanced Table */}
@@ -697,12 +957,27 @@ export default function ReportsPage() {
                     ) : (
                       employees
                         .filter((emp) => {
-                          const matchText =
-                            emp.name?.toLowerCase().includes(filterText) ||
-                            emp.email?.toLowerCase().includes(filterText);
-                          const matchRole = filterRole === 'all' || emp.role === filterRole;
-                          return matchText && matchRole;
-                        })
+  const matchText =
+    emp.name?.toLowerCase().includes(filterText) ||
+    emp.email?.toLowerCase().includes(filterText);
+
+  const matchRole = filterRole === 'all' || emp.role === filterRole;
+
+  // Date range filter on emp.last_login
+  const matchDate = (() => {
+    if (!filterStartDate && !filterEndDate) return true;
+    if (!emp.last_login) return false;                 // no login date to compare
+
+    const t = new Date(emp.last_login).getTime();
+    const tStart = filterStartDate ? new Date(filterStartDate).setHours(0, 0, 0, 0) : -Infinity;
+    const tEnd   = filterEndDate   ? new Date(filterEndDate).setHours(23, 59, 59, 999) : Infinity;
+
+    return t >= tStart && t <= tEnd;
+  })();
+
+  return matchText && matchRole && matchDate;
+})
+
                         .map((emp, idx) => (
                           <Zoom in timeout={200 + idx * 80} key={emp.id}>
                             <StyledTableRow>

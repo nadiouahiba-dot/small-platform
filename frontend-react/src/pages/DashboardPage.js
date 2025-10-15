@@ -1,5 +1,5 @@
 // src/pages/DashboardPage.js
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo,  } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -65,6 +65,7 @@ import {
 
 import { styled, keyframes } from '@mui/material/styles';
 import MarabesLogo from '../assets/marabes-logo.png';
+
 
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip as ChartJSTooltip, Legend } from 'chart.js';
@@ -304,6 +305,79 @@ const [notifications, setNotifications] = useState(() => {
 
 const [anchorNotif, setAnchorNotif] = useState(null);
 
+// --- Show-more for notifications ---
+const [showAllNotifs, setShowAllNotifs] = useState(false);
+const MAX_NOTIFS = 6;
+
+const formatNotifDate = (value) => {
+  // supports both new "at" (ISO) and old "time" (string) fields
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d)) return String(value); // fallback for legacy plain strings
+  const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
+  const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${dateStr} • ${timeStr}`;
+};
+
+// --- Notification grouping helpers (robust) ---
+const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const isSameDay = (a, b) => startOfDay(a).getTime() === startOfDay(b).getTime();
+
+const labelForDay = (value) => {
+  const d = new Date(value);
+  if (isNaN(d)) return 'Other';
+
+  const now = new Date();
+  const today = startOfDay(now);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (isSameDay(d, today)) return 'Today';
+  if (isSameDay(d, yesterday)) return 'Yesterday';
+
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(today.getDate() - 6);
+  if (d >= sevenDaysAgo) {
+    return d.toLocaleDateString(undefined, { weekday: 'long' }); // Mon/Tue/etc
+  }
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+// Parse to a numeric timestamp; invalid -> -Infinity (so they go last)
+const tsOf = (n) => {
+  const raw = n.at ?? n.time;
+  const d = new Date(raw);
+  return isNaN(d) ? -Infinity : d.getTime();
+};
+
+const groupNotifications = (list, showAll, max) => {
+  // enrich with safe timestamp + label
+  const enriched = list.map((n) => {
+    const ts = tsOf(n);
+    return {
+      ...n,
+      __ts: ts,
+      __label: labelForDay(n.at ?? n.time),
+    };
+  });
+
+  // sort newest valid on top; legacy (invalid date) at the end
+  enriched.sort((a, b) => b.__ts - a.__ts);
+
+  // only slice after we’ve sorted
+  const limited = showAll ? enriched : enriched.slice(0, max);
+
+  // group by label
+  return limited.reduce((acc, n) => {
+    const label = n.__label;
+    if (!acc[label]) acc[label] = [];
+    acc[label].push(n);
+    return acc;
+  }, {});
+};
+
+
+
 // ✅ Listen to updates from other tabs/pages (like ReportsPage)
 useEffect(() => {
   const handleStorageChange = () => {
@@ -428,7 +502,7 @@ setNotifications((prev) => [
     message: editingUser
       ? `✏️ User "${form.name}" has been modified.`
       : `✅ New user "${form.name}" has been added.`,
-    time: new Date().toLocaleTimeString(),
+    at: new Date().toISOString(), 
   },
   ...prev,
 ]);
@@ -453,7 +527,7 @@ setNotifications((prev) => [
       setToast({ open: true, message: 'User deleted successfully! ✓', severity: 'success' });
 
       setNotifications((prev) => [
-  { id: Date.now(), message: `🗑️ User "${user.name}" was deleted.`, time: new Date().toLocaleTimeString() },
+  { id: Date.now(), message: `🗑️ User "${user.name}" was deleted.`, at: new Date().toISOString(),  },
   ...prev,
 ]);
 
@@ -817,41 +891,76 @@ if (!data) {
 <Menu
   anchorEl={anchorNotif}
   open={Boolean(anchorNotif)}
-  onClose={handleNotifClose}
+  onClose={() => {
+    setShowAllNotifs(false);
+    handleNotifClose();
+  }}
   PaperProps={{
     sx: {
       borderRadius: 2,
       mt: 1,
       boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-      minWidth: 260,
+      minWidth: 280,
+      maxWidth: 360,
+      maxHeight: showAllNotifs ? 500 : 'auto',
       background: 'rgba(255,255,255,0.95)',
       backdropFilter: 'blur(8px)',
     },
   }}
 >
   {notifications.length > 0 ? (
-    notifications.map((notif) => (
-      <MenuItem key={notif.id} onClick={handleNotifClose}>
-        <ListItemText
-          primary={notif.message}
-          secondary={notif.time}
-          primaryTypographyProps={{
-            fontWeight: 600,
-            fontSize: '0.95rem',
-          }}
-          secondaryTypographyProps={{
-            fontSize: '0.8rem',
-            color: 'text.secondary',
-          }}
-        />
-      </MenuItem>
-    ))
+    <>
+      {Object.entries(groupNotifications(notifications, showAllNotifs, MAX_NOTIFS)).map(
+        ([section, items], sectionIdx, arr) => (
+          <Box key={section}>
+            {/* Section header */}
+            <Box sx={{ px: 2, pt: sectionIdx === 0 ? 1 : 2 }}>
+              <Typography
+                variant="overline"
+                sx={{ fontWeight: 800, color: 'text.secondary', letterSpacing: 1 }}
+              >
+                {section}
+              </Typography>
+            </Box>
+
+            {/* Section items */}
+            {items.map((notif) => (
+              <MenuItem key={notif.id} onClick={handleNotifClose}>
+                <ListItemText
+                  primary={notif.message}
+                  secondary={formatNotifDate(notif.at ?? notif.time)}
+                  primaryTypographyProps={{ fontWeight: 600, fontSize: '0.95rem' }}
+                  secondaryTypographyProps={{ fontSize: '0.8rem', color: 'text.secondary' }}
+                />
+              </MenuItem>
+            ))}
+
+            {/* Divider between sections */}
+            {sectionIdx < arr.length - 1 && <Divider sx={{ my: 0.5 }} />}
+          </Box>
+        )
+      )}
+
+      {notifications.length > MAX_NOTIFS && (
+        <>
+          <Divider />
+          <MenuItem
+            onClick={() => setShowAllNotifs((v) => !v)}
+            sx={{ justifyContent: 'center', fontWeight: 700 }}
+          >
+            {showAllNotifs ? 'Show less' : `Show ${notifications.length - MAX_NOTIFS} more`}
+          </MenuItem>
+        </>
+      )}
+    </>
   ) : (
     <MenuItem disabled>
       <ListItemText primary="No notifications" />
     </MenuItem>
   )}
 </Menu>
+
+
         {/* BODY */}
         <Box sx={{ flexGrow: 1, p: 4, overflowY: 'auto' }}>
           {role === 'admin' ? (
