@@ -1,5 +1,5 @@
 // src/pages/DashboardPage.js
-import React, { useEffect, useState, useMemo,  } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -276,6 +276,119 @@ const [filterPeriod, setFilterPeriod] = useState('week'); // default = this week
 const [filterStartDate, setFilterStartDate] = useState('');
 const [filterEndDate, setFilterEndDate] = useState('');
 
+// ISO week filter (like ReportsPage)
+const currentYear = new Date().getFullYear();
+const [filterWeekNumber, setFilterWeekNumber] = useState(0); // 0 = All weeks
+const [filterWeekYear, setFilterWeekYear] = useState(currentYear);
+
+// When set (0..6, Monday=0), list is further filtered to that day
+const [selectedWeekday, setSelectedWeekday] = useState(null);
+
+const getISOWeekYear = (date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  return { year: d.getUTCFullYear(), week: weekNo };
+};
+const chartRef = useRef(null);
+
+
+// convert Monday-based index (0..6 => Mon..Sun) to JS getDay() (0..6 => Sun..Sat)
+const mondayIndexToJsDay = (i) => (i === 6 ? 0 : i + 1);
+
+// current range derived from Period/ISO week/custom
+
+const getActiveDateRange = useCallback(() => {
+  const now = new Date();
+
+  if (filterWeekNumber > 0) {
+    // ISO week range (Mon..Sun)
+    // find Monday of that ISO week/year
+    // step 1: Jan 4th is always in week 1; get its Monday
+    const jan4 = new Date(Date.UTC(filterWeekYear, 0, 4));
+    const jan4Day = jan4.getUTCDay() || 7;
+    const week1Monday = new Date(jan4);
+    week1Monday.setUTCDate(jan4.getUTCDate() - (jan4Day - 1));
+
+    // step 2: add (week-1)*7 days
+    const monday = new Date(week1Monday);
+    monday.setUTCDate(week1Monday.getUTCDate() + (filterWeekNumber - 1) * 7);
+
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+
+    // normalize to local
+    const start = new Date(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate());
+    const end = new Date(sunday.getUTCFullYear(), sunday.getUTCMonth(), sunday.getUTCDate(), 23, 59, 59, 999);
+    return { start, end };
+  }
+
+  if (filterPeriod === 'today') {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    return { start, end };
+  }
+
+  if (filterPeriod === 'week') {
+    const day = now.getDay();
+    const diff = day === 0 ? 6 : day - 1; // Monday start
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - diff);
+    const start = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate());
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
+  if (filterPeriod === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { start, end };
+  }
+
+
+  // custom
+  const start = filterStartDate ? new Date(filterStartDate) : null;
+  const end = filterEndDate ? new Date(filterEndDate + 'T23:59:59.999') : null;
+  return { start, end };
+}, [filterWeekNumber, filterWeekYear, filterPeriod, filterStartDate, filterEndDate]);
+
+const matchesFilters = useCallback(
+  (user, { ignoreSelected = false } = {}) => {
+    const matchText =
+      user.name?.toLowerCase().includes(filterText) ||
+      user.email?.toLowerCase().includes(filterText);
+
+    const matchRole = filterRole === 'all' || user.role === filterRole;
+
+    const loginDate = user.last_login ? new Date(user.last_login) : null;
+    if (!loginDate) return false;
+
+    // Period / ISO / Custom range
+    if (filterWeekNumber > 0) {
+      const { week, year } = getISOWeekYear(loginDate);
+      if (!(week === Number(filterWeekNumber) && year === Number(filterWeekYear))) return false;
+    } else {
+      const { start, end } = getActiveDateRange();
+      if (start && loginDate < start) return false;
+      if (end && loginDate > end) return false;
+    }
+
+    // Extra filter: day selected from chart (Mon=0..Sun=6)
+    if (!ignoreSelected && selectedWeekday !== null) {
+      const jsDayWanted = mondayIndexToJsDay(selectedWeekday); // 1..6,0
+      if (loginDate.getDay() !== jsDayWanted) return false;
+    }
+
+    return matchText && matchRole;
+  },
+ [filterText, filterRole, filterWeekNumber, filterWeekYear, selectedWeekday, getActiveDateRange]
+);
+
+
 const [showChart, setShowChart] = useState(false);
 
   const [openConfig, setOpenConfig] = useState(false);
@@ -284,6 +397,8 @@ const [showChart, setShowChart] = useState(false);
     newPassword: '',
     confirmPassword: '',
   });
+
+
 // 🧩 For delete confirmation dialog
 const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 const [userToDelete, setUserToDelete] = useState(null);
@@ -581,23 +696,16 @@ const hasLogins = Array.isArray(data?.recentLogins) && data?.recentLogins.length
 const weeklyData = useMemo(() => {
   if (!data?.recentLogins) return { labels: [], datasets: [] };
 
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - diff);
-  monday.setHours(0, 0, 0, 0);
-
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const counts = Array(7).fill(0);
 
   data.recentLogins.forEach((user) => {
-    if (!user.last_login) return;
-    const loginDate = new Date(user.last_login);
-    if (loginDate >= monday) {
-      const index = loginDate.getDay() === 0 ? 6 : loginDate.getDay() - 1;
-      counts[index]++;
-    }
+    // apply text/role + date-range filters; ignore selected weekday for totals
+    if (!matchesFilters(user, { ignoreSelected: true })) return;
+
+    const d = new Date(user.last_login);
+    const idx = d.getDay() === 0 ? 6 : d.getDay() - 1; // Monday=0
+    counts[idx]++;
   });
 
   return {
@@ -611,7 +719,30 @@ const weeklyData = useMemo(() => {
       },
     ],
   };
-}, [data]);
+}, [data, matchesFilters]);
+
+// Handle clicks on bars in the Weekly Login Overview chart
+const handleBarClick = (event) => {
+  const chart = chartRef.current;
+  if (!chart) return;
+
+  // Find the nearest bar the user clicked
+  const points = chart.getElementsAtEventForMode(
+    event.nativeEvent,
+    'nearest',
+    { intersect: true },
+    true
+  );
+  if (!points.length) return;
+
+  const barIndex = points[0].index; // 0..6 (Mon..Sun)
+  setSelectedWeekday((prev) => (prev === barIndex ? null : barIndex));
+
+  // Scroll the Recent Login list into view after selecting
+  const el = document.querySelector('[data-recent-logins]');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
 
 // ✅ Then add the conditional returns after
 if (error) {
@@ -1079,6 +1210,8 @@ if (!data) {
     {/* 🗓️ Period filters */}
 
 {/* 🧭 Smart Period Filter */}
+{/* 🧭 Smart Period Filter (disabled when week selected) */}
+{/* 🧭 Smart Period Filter (disabled when week selected) */}
 <TextField
   select
   label="Period"
@@ -1086,6 +1219,7 @@ if (!data) {
   onChange={(e) => setFilterPeriod(e.target.value)}
   size="small"
   SelectProps={{ native: true }}
+  disabled={filterWeekNumber > 0} // disable period when week filter active
   sx={{
     width: 200,
     '& .MuiOutlinedInput-root': {
@@ -1103,7 +1237,7 @@ if (!data) {
   <option value="custom">Custom Range</option>
 </TextField>
 
-{/* 📅 Only show when “Custom Range” is selected */}
+{/* 📅 Custom range only if selected */}
 {filterPeriod === 'custom' && (
   <>
     <TextField
@@ -1127,19 +1261,50 @@ if (!data) {
   </>
 )}
 
-{/* 🔄 Reset Button */}
+{/* 📆 ISO Week Number filter */}
+<TextField
+  select
+  label="Week # (ISO)"
+  value={filterWeekNumber}
+  onChange={(e) => setFilterWeekNumber(Number(e.target.value))}
+  size="small"
+  SelectProps={{ native: true }}
+  sx={{ width: 170 }}
+>
+  <option value={0}>All Weeks</option>
+  {Array.from({ length: 53 }, (_, i) => i + 1).map((w) => (
+    <option key={w} value={w}>Week {w}</option>
+  ))}
+</TextField>
+
+{/* 📅 Year selector */}
+<TextField
+  select
+  label="Year"
+  value={filterWeekYear}
+  onChange={(e) => setFilterWeekYear(Number(e.target.value))}
+  size="small"
+  SelectProps={{ native: true }}
+  sx={{ width: 120 }}
+  disabled={filterWeekNumber === 0}
+>
+  {Array.from({ length: 6 }, (_, i) => currentYear - 4 + i).map((y) => (
+    <option key={y} value={y}>{y}</option>
+  ))}
+</TextField>
+
+{/* 🔄 Reset to This Week */}
 <Button
   variant="outlined"
   color="success"
   onClick={() => {
     const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - diff);
+    const { week, year } = getISOWeekYear(now);
+    setFilterWeekNumber(week);  // show current ISO week
+    setFilterWeekYear(year);
     setFilterPeriod('week');
-    setFilterStartDate(monday.toISOString().split('T')[0]);
-    setFilterEndDate(now.toISOString().split('T')[0]);
+    setFilterStartDate('');
+    setFilterEndDate('');
   }}
   sx={{
     fontWeight: 700,
@@ -1151,7 +1316,6 @@ if (!data) {
 >
   Reset to This Week
 </Button>
-
 
     {/* ➕ Add New Member */}
     <Button
@@ -1217,7 +1381,7 @@ if (!data) {
 
               {/* Enhanced Recent Login Activity Card */}
               <Fade in timeout={1000}>
-                <GlassCard sx={{ p: 3.5, mb: 3 }}>
+                <GlassCard sx={{ p: 3.5, mb: 3 }} data-recent-logins>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Box
@@ -1251,42 +1415,9 @@ if (!data) {
 
                   {hasLogins ? (
                     <List sx={{ bgcolor: 'transparent' }}>
-                      {data.recentLogins
-                        .filter((user) => {
-  const matchText =
-    user.name?.toLowerCase().includes(filterText) ||
-    user.email?.toLowerCase().includes(filterText);
-  const matchRole = filterRole === 'all' || user.role === filterRole;
+                       {data.recentLogins
+                          .filter((user) => matchesFilters(user))
 
-  const loginDate = user.last_login ? new Date(user.last_login) : null;
-
-  // Period filters
-const now = new Date();
-let matchPeriod = true;
-
-if (filterPeriod === 'today') {
-  const today = now.toDateString();
-  matchPeriod = loginDate && loginDate.toDateString() === today;
-} else if (filterPeriod === 'week') {
-  const dayOfWeek = now.getDay();
-  const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - diff);
-  monday.setHours(0, 0, 0, 0);
-  matchPeriod = loginDate && loginDate >= monday;
-} else if (filterPeriod === 'month') {
-  matchPeriod =
-    loginDate &&
-    loginDate.getMonth() === now.getMonth() &&
-    loginDate.getFullYear() === now.getFullYear();
-} else if (filterPeriod === 'custom') {
-  matchPeriod =
-    (!filterStartDate || loginDate >= new Date(filterStartDate)) &&
-    (!filterEndDate || loginDate <= new Date(filterEndDate));
-}
-
-return matchText && matchRole && matchPeriod;
-})
 
                         .map((user, index) => (
                           <Zoom in timeout={300 + index * 100} key={index}>
@@ -1576,6 +1707,8 @@ return matchText && matchRole && matchPeriod;
         {/* Chart */}
         <Box sx={{ height: 320 }}>
           <Bar
+            ref={chartRef}                
+            onClick={handleBarClick}  
             data={weeklyData}
             options={{
               responsive: true,
