@@ -13,10 +13,7 @@ import {
   Alert,
   InputAdornment,
   IconButton,
-  Link,
   Divider,
-  Chip,
-  Stack,
 } from "@mui/material";
 import {
   Email as EmailIcon,
@@ -24,7 +21,8 @@ import {
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
-import CompanyHero from "../assets/marabes-2.png";
+
+import MarabesLogo from "../assets/marabes-logo.png";
 
 /* ========== ANIMATIONS ========== */
 const gradientShift = keyframes`
@@ -33,16 +31,16 @@ const gradientShift = keyframes`
   100% { background-position: 0% 50%; }
 `;
 const float = keyframes`
-  0%   { transform: translate(0, 0) scale(1); opacity: 0.9; }
-  50%  { transform: translate(30px, -25px) scale(1.05); opacity: 1; }
-  100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(28px, -22px) scale(1.05); }
+  100% { transform: translate(0, 0) scale(1); }
 `;
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(40px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-/* ========== BACKGROUND ========== */
+/* ========== PAGE BACKGROUND ========== */
 const Page = styled(Box)({
   minHeight: "100vh",
   display: "flex",
@@ -58,7 +56,7 @@ const AnimatedBg = styled("div")({
   inset: 0,
   zIndex: 0,
   background:
-    "linear-gradient(120deg, #b4f4d1ff, #c7f9e0ff, #ebfdf3, #bff3ddff, #e8f6ee)",
+    "linear-gradient(120deg, #b4f4d1, #c7f9e0, #ebfdf3, #bff3dd, #e8f6ee)",
   backgroundSize: "400% 400%",
   animation: `${gradientShift} 20s ease-in-out infinite`,
 });
@@ -69,126 +67,159 @@ const BgBlob = styled("div")({
   height: 450,
   borderRadius: "50%",
   filter: "blur(60px)",
-  opacity: 0.3,
+  opacity: 0.28,
   pointerEvents: "none",
   animation: `${float} 18s ease-in-out infinite`,
   zIndex: 0,
 });
 
-/* ========== CARD ========== */
+/* ========== CARD LAYOUT ========== */
 const CardRoot = styled(Paper)(({ theme }) => ({
-  borderRadius: 28,
+  borderRadius: 32,
   overflow: "hidden",
-  background: "transparent",
+  background: "#ffffff",
   display: "grid",
   gridTemplateColumns: "1fr",
-  maxWidth: 960,
-  minHeight: 640, // ⬅️ Taller card
+  maxWidth: 980,
+  minHeight: 560,
   margin: "0 auto",
   position: "relative",
   zIndex: 1,
   boxShadow:
-    "0 30px 80px rgba(16,24,40,0.15), 0 12px 30px rgba(45,159,71,0.08)",
-  animation: `${fadeIn} 1.2s ease forwards`,
+    "0 24px 70px rgba(16,24,40,0.14), 0 10px 26px rgba(45,159,71,0.10)",
+  animation: `${fadeIn} 1.0s ease forwards`,
   [theme.breakpoints.up("md")]: {
-    gridTemplateColumns: "0.65fr 0.65fr",
+    gridTemplateColumns: "0.85fr 1.15fr",
   },
 }));
 
-/* LEFT PANEL */
+/* ========== LEFT PANEL ========== */
 const LeftPanel = styled(Box)(({ theme }) => ({
   color: "#fff",
   background:
-    "linear-gradient(150deg, #138f45 0%, #0d7037 50%, #085b2d 100%)",
-  padding: theme.spacing(2, 3), // more vertical padding
+    "linear-gradient(155deg, #25b864 0%, #1ea75a 48%, #1a8f4c 100%)",
+  padding: theme.spacing(6, 4),
   display: "flex",
   flexDirection: "column",
+  alignItems: "center",
   justifyContent: "center",
-  gap: theme.spacing(3),
+  textAlign: "center",
+  gap: theme.spacing(2),
   position: "relative",
-  "&::after": {
-    content: '""',
-    position: "absolute",
-    inset: 0,
-    background:
-      "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), transparent 70%)",
-  },
-}));
-
-const CompanyImage = styled("img")({
-  width: "100%",
-  maxWidth: 410,
-  height: "auto",
-  objectFit: "contain",
-  marginBottom: 20,
-});
-
-/* RIGHT PANEL (GLASS) */
-const RightPanel = styled(Box)(({ theme }) => ({
-  position: "relative",
-  // softer, greener glass
-  background:
-    "linear-gradient(to bottom right, rgba(255,255,255,0.42), rgba(226, 247, 237, 0.34))",
-  backdropFilter: "blur(18px) saturate(170%)",
-  WebkitBackdropFilter: "blur(18px) saturate(170%)",
-  borderLeft: "1px solid rgba(42,171,94,0.18)",
-  boxShadow: "inset 0 0 0 1px rgba(42,171,94,0.05)",
-  padding: theme.spacing(6, 6),
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-
-  // subtle corner glow so it doesn't look flat
+  overflow: "hidden",
   "&::before": {
     content: '""',
     position: "absolute",
-    inset: 0,
-    background:
-      "radial-gradient(600px 300px at 20% 0%, rgba(42,171,94,0.09), transparent 60%)",
-    pointerEvents: "none",
+    top: "10%",
+    left: "-5%",
+    width: 260,
+    height: 260,
+    background: "rgba(255,255,255,0.14)",
+    borderRadius: "50%",
+    filter: "blur(44px)",
+  },
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    bottom: "6%",
+    right: "-12%",
+    width: 220,
+    height: 220,
+    background: "rgba(255,255,255,0.10)",
+    borderRadius: "50%",
+    filter: "blur(40px)",
+  },
+  [theme.breakpoints.down("md")]: {
+    padding: theme.spacing(5, 3.5),
   },
 }));
 
+const LogoBadge = styled(Box)({
+  width: 148,
+  height: 148,
+  borderRadius: 30,
+  background:
+    "linear-gradient(150deg, rgba(255,255,255,0.22), rgba(255,255,255,0.10))",
+  display: "grid",
+  placeItems: "center",
+  marginBottom: 18,
+  boxShadow:
+    "0 16px 34px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.25)",
+  border: "1px solid rgba(255,255,255,0.18)",
+});
+const LogoImg = styled("img")({
+  width: "80%",
+  height: "80%",
+  objectFit: "contain",
+});
 
-/* INPUTS & BUTTON */
-const StyledTextField = styled(TextField)(({ theme }) => ({
+/* ========== RIGHT PANEL (mint) ========== */
+const RightPanel = styled(Box)(({ theme }) => ({
+  position: "relative",
+  background:
+    "linear-gradient(135deg, #f7fffb 0%, #effbf4 40%, #e8f7f0 100%)",
+  padding: theme.spacing(6, 5),
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  [theme.breakpoints.down("md")]: {
+    padding: theme.spacing(5, 4),
+  },
+}));
+
+/* ========== GLASS FORM CARD ========== */
+const FormCard = styled(Paper)(({ theme }) => ({
+  borderRadius: 22,
+  padding: theme.spacing(4),
+  background:
+    "linear-gradient(145deg, rgba(255,255,255,0.55), rgba(255,255,255,0.28))",
+  backdropFilter: "blur(16px) saturate(160%)",
+  WebkitBackdropFilter: "blur(16px) saturate(160%)",
+  border: "1px solid rgba(42,171,94,0.18)",
+  boxShadow:
+    "0 22px 50px rgba(28,137,86,0.12), 0 2px 8px rgba(16, 24, 40, 0.06)",
+}));
+
+/* ========== INPUTS & BUTTONS (no blue) ========== */
+const StyledTextField = styled(TextField)({
   "& .MuiOutlinedInput-root": {
     borderRadius: 14,
-    backgroundColor: "#fff",
-    transition: "all .2s ease",
-    "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(0,0,0,0.12)" },
-    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#2d9f47" },
-    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-      borderColor: "#2d9f47",
-      borderWidth: 2,
-    },
+    background: "#ffffff !important",
+    transition: "all .25s ease",
+    "& fieldset": { borderColor: "rgba(0,0,0,0.10)" },
+    "&:hover fieldset": { borderColor: "#2d9f47" },
+    "&.Mui-focused fieldset": { borderColor: "#2d9f47", borderWidth: 2 },
+    "&.Mui-focused": { boxShadow: "0 0 0 0 transparent", outline: "none" },
   },
   "& .MuiInputBase-input": {
-    backgroundColor: "#fff !important",
+    padding: "14px 16px",
+    fontSize: "0.96rem",
+    caretColor: "#2d9f47",
   },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#2d9f47" },
-  "& input:-webkit-autofill, & input:-webkit-autofill:hover, & input:-webkit-autofill:focus": {
+  "& label": { color: "#678a79" },
+  "& label.Mui-focused": { color: "#2d9f47" },
+  "& input:-webkit-autofill": {
     WebkitTextFillColor: "#0f172a",
-    caretColor: "#0f172a",
     transition: "background-color 9999s ease-in-out 0s",
     boxShadow: "0 0 0px 1000px #ffffff inset",
   },
-}));
+});
 
-const PrimaryBtn = styled(Button)(({ theme }) => ({
-  borderRadius: 25,
-  padding: theme.spacing(1.5, 3),
+const LoginButton = styled(Button)(({ theme }) => ({
+  borderRadius: 14,
+  padding: theme.spacing(1.4, 2.6),
   textTransform: "none",
   fontWeight: 700,
-  fontSize: "1.1rem",
+  fontSize: "1rem",
   background: "linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)",
   color: "#fff",
-  boxShadow: "0 12px 26px rgba(45,159,71,0.3)",
-  transition: "all .3s ease",
+  boxShadow: "0 8px 20px rgba(45,159,71,0.30)",
+  transition: "all .25s ease",
   "&:hover": {
     background: "linear-gradient(135deg, #1a7a35 0%, #2d9f47 100%)",
-    boxShadow: "0 0 18px rgba(45,159,71,0.6), 0 12px 26px rgba(45,159,71,0.4)",
-    transform: "translateY(-2px)",
+    boxShadow:
+      "0 0 16px rgba(45,159,71,0.45), 0 8px 20px rgba(45,159,71,0.35)",
+    transform: "translateY(-1px)",
   },
 }));
 
@@ -213,7 +244,9 @@ export default function LoginPage() {
       localStorage.setItem("role", role);
       navigate(role === "admin" ? "/admin-dashboard" : "/employee-dashboard");
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || "Login failed. Please try again.");
+      setErrorMsg(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
     }
   };
 
@@ -225,7 +258,7 @@ export default function LoginPage() {
           top: -100,
           left: -120,
           background:
-            "radial-gradient(circle at 30% 30%, rgba(64,196,120,0.45), rgba(64,196,120,0) 60%)",
+            "radial-gradient(circle at 30% 30%, rgba(64,196,120,0.42), rgba(64,196,120,0) 60%)",
         }}
       />
       <BgBlob
@@ -233,108 +266,165 @@ export default function LoginPage() {
           bottom: -120,
           right: -100,
           background:
-            "radial-gradient(circle at 70% 70%, rgba(31,168,102,0.45), rgba(31,168,102,0) 60%)",
+            "radial-gradient(circle at 70% 70%, rgba(31,168,102,0.42), rgba(31,168,102,0) 60%)",
           animationDuration: "22s",
         }}
       />
 
       <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
-        <CardRoot>
+        <CardRoot elevation={0}>
+          {/* LEFT – Brand side */}
           <LeftPanel>
-            <CompanyImage src={CompanyHero} alt="MARABES" />
-            <Typography variant="h4" sx={{ fontWeight: 900, lineHeight: 1.2, mb: 1 }}>
-              Your all-in-one outsourcing solution
+            <LogoBadge>
+              <LogoImg src={MarabesLogo} alt="MARABES logo" />
+            </LogoBadge>
+
+            <Typography
+              sx={{
+                fontWeight: 900,
+                letterSpacing: 1.2,
+                fontSize: 30,
+                opacity: 0.98,
+              }}
+            >
+              MARABES
             </Typography>
-            <Typography sx={{ opacity: 0.9, fontSize: "1.05rem" }}>
-              We streamline operations so your team can focus on growth.
+
+            <Typography
+              sx={{
+                fontWeight: 900,
+                lineHeight: 1.15,
+                fontSize: 26,
+                maxWidth: 480,
+              }}
+            >
+              All-in-one outsourcing
             </Typography>
-            <Stack direction="row" spacing={1.2} useFlexGap flexWrap="wrap" sx={{ mt: 3 }}>
-              <Chip label="24/7 Support" variant="outlined" sx={{ borderColor: "rgba(255,255,255,0.5)", color: "#fff", fontWeight: 500 }} />
-              <Chip label="Secure & Private" variant="outlined" sx={{ borderColor: "rgba(255,255,255,0.5)", color: "#fff", fontWeight: 500 }} />
-              <Chip label="Scalable" variant="outlined" sx={{ borderColor: "rgba(255,255,255,0.5)", color: "#fff", fontWeight: 500 }} />
-            </Stack>
+
+            <Typography sx={{ opacity: 0.95, fontSize: 14, mt: -0.5 }}>
+              Streamline ops. Focus on growth.
+            </Typography>
+
+            <Typography variant="caption" sx={{ mt: 1.5, opacity: 0.85 }}>
+              outsourcing made simple.
+            </Typography>
           </LeftPanel>
 
+          {/* RIGHT – Mint surface */}
           <RightPanel>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: "#0f172a" }}>
-                Welcome back
+            {/* Greeting OUTSIDE the glass card */}
+            <Box sx={{ mb: 2.5 }}>
+              <Typography
+                sx={{
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  mb: 0.4,
+                  lineHeight: 1.1,
+                  fontSize: { xs: 28, sm: 34, md: 38 },
+                  letterSpacing: 0.2,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                Welcome back <span role="img" aria-label="waving hand">👋</span>
               </Typography>
-              <Typography sx={{ color: "text.secondary" }}>
+              <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
                 Log in to your account to continue
               </Typography>
             </Box>
 
-            {errorMsg && (
-              <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
-                {errorMsg}
-              </Alert>
-            )}
+            {/* Glass form card */}
+            <FormCard variant="outlined">
+              {errorMsg && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 2.5,
+                    borderRadius: 2,
+                    backgroundColor: "rgba(255, 80, 80, 0.08)",
+                    border: "1px solid rgba(255,80,80,0.25)",
+                  }}
+                >
+                  {errorMsg}
+                </Alert>
+              )}
 
-            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <StyledTextField
-                label="Email"
-                type="email"
-                required
-                fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="username"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailIcon sx={{ color: "#2d9f47" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                placeholder="you@example.com"
-              />
+              <Box
+                component="form"
+                onSubmit={handleSubmit}
+                noValidate
+                sx={{ display: "flex", flexDirection: "column", gap: 2.25 }}
+              >
+                <StyledTextField
+                  label="Email"
+                  type="email"
+                  required
+                  fullWidth
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="username"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EmailIcon sx={{ color: "#2d9f47", fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
-              <StyledTextField
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                required
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon sx={{ color: "#2d9f47" }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() => setShowPassword((s) => !s)}
-                        edge="end"
-                        sx={{ color: "#2d9f47" }}
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                placeholder="••••••••"
-              />
+                <StyledTextField
+                  label="Password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  fullWidth
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockIcon sx={{ color: "#2d9f47", fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={() => setShowPassword((s) => !s)}
+                          edge="end"
+                          size="small"
+                          sx={{ color: "#2d9f47" }}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
-              <Link component="button" type="button" underline="hover" sx={{ fontSize: 14, alignSelf: "flex-end", mb: 1 }}>
-                Forgot your password?
-              </Link>
+                <LoginButton type="submit" variant="contained" fullWidth>
+                  Log in
+                </LoginButton>
+              </Box>
 
-              <PrimaryBtn type="submit" variant="contained" fullWidth>
-                Log in
-              </PrimaryBtn>
-            </Box>
-
-            <Divider sx={{ my: 3 }} />
-            <Typography variant="caption" align="center" sx={{ color: "text.secondary" }}>
-              © 2025 MARABES
-            </Typography>
+              <Divider sx={{ my: 2.5 }} />
+              <Typography
+                variant="caption"
+                align="center"
+                sx={{ color: "text.secondary", display: "block" }}
+              >
+                © 2025 MARABES
+              </Typography>
+            </FormCard>
           </RightPanel>
         </CardRoot>
+
+        <Box sx={{ mt: 3, textAlign: "center" }}>
+          <Typography variant="body2" sx={{ color: "#6b7280", fontSize: 13 }}>
+            All rights reserved.
+          </Typography>
+        </Box>
       </Container>
     </Page>
   );
