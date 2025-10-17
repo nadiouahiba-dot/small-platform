@@ -1,5 +1,5 @@
 // src/pages/DashboardPage.js
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -65,11 +65,10 @@ import {
 
 import { styled, keyframes } from '@mui/material/styles';
 import MarabesLogo from '../assets/marabes-logo.png';
+import ChartPro from '../components/ChartPro';
 
 
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip as ChartJSTooltip, Legend } from 'chart.js';
-ChartJS.register(BarElement, CategoryScale, LinearScale, ChartJSTooltip, Legend);
+
 
 const BASE_URL = 'http://localhost:5000/api';
 const drawerWidth = 280;
@@ -292,7 +291,7 @@ const getISOWeekYear = (date) => {
   const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
   return { year: d.getUTCFullYear(), week: weekNo };
 };
-const chartRef = useRef(null);
+
 
 
 // convert Monday-based index (0..6 => Mon..Sun) to JS getDay() (0..6 => Sun..Sat)
@@ -495,13 +494,17 @@ const groupNotifications = (list, showAll, max) => {
 
 // ✅ Listen to updates from other tabs/pages (like ReportsPage)
 useEffect(() => {
-  const handleStorageChange = () => {
-    const saved = localStorage.getItem('notifications');
-    if (saved) setNotifications(JSON.parse(saved));
+  const handleStorageChange = (e) => {
+    if (role === 'admin' && e.key === 'notifications') {
+      setNotifications(JSON.parse(e.newValue || '[]'));
+    } else if (role !== 'admin' && e.key === `notifications_${email}`) {
+      setNotifications(JSON.parse(e.newValue || '[]'));
+    }
   };
   window.addEventListener('storage', handleStorageChange);
   return () => window.removeEventListener('storage', handleStorageChange);
-}, []);
+}, [role, email]);
+
 
 // ✅ Keep notifications in localStorage even after refresh
 useEffect(() => {
@@ -695,7 +698,7 @@ setNotifications((prev) => [
 const hasLogins =
   Array.isArray(data?.recentLogins) && data.recentLogins.length > 0;
 
-// Names per day (Mon..Sun), filtered exactly like the counts
+// ✅ Names per day (Mon..Sun), filtered exactly like the counts
 const weeklyNamesByDay = useMemo(() => {
   if (!data?.recentLogins) return Array(7).fill(0).map(() => []);
   const names = Array(7).fill(0).map(() => []);
@@ -741,27 +744,17 @@ const weeklyData = useMemo(() => {
   };
 }, [data, matchesFilters]);
 
-// Handle clicks on bars in the Weekly Login Overview chart
-const handleBarClick = (event) => {
-  const chart = chartRef.current;
-  if (!chart) return;
+// 📈 Data for <ChartPro/> (kept separate from other hooks)
+const chartDataForPro = useMemo(() => {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const counts = weeklyData?.datasets?.[0]?.data || [];
+  return days.map((d, i) => ({
+    day: d,
+    logins: counts[i] || 0,
+    names: weeklyNamesByDay[i] || [],
+  }));
+}, [weeklyData, weeklyNamesByDay]);
 
-  // Find the nearest bar the user clicked
-  const points = chart.getElementsAtEventForMode(
-    event.nativeEvent,
-    'nearest',
-    { intersect: true },
-    true
-  );
-  if (!points.length) return;
-
-  const barIndex = points[0].index; // 0..6 (Mon..Sun)
-  setSelectedWeekday((prev) => (prev === barIndex ? null : barIndex));
-
-  // Scroll the Recent Login list into view after selecting
-  const el = document.querySelector('[data-recent-logins]');
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-};
 
 
 // ✅ Then add the conditional returns after
@@ -1655,161 +1648,23 @@ if (!data) {
 {showChart && (
   <div id="weeklyChartSection">
     <Fade in={showChart} timeout={800}>
-      <GlassCard
-        sx={{
-          p: 4,
-          mt: 5,
-          mb: 3,
-          border: '1px solid rgba(45, 159, 71, 0.15)',
-          boxShadow: '0 12px 40px rgba(45,159,71,0.12)',
-          backdropFilter: 'blur(25px)',
-          transition: 'all 0.4s ease',
-          '&:hover': {
-            boxShadow: '0 16px 50px rgba(45,159,71,0.25)',
-            transform: 'translateY(-4px)',
-          },
+      <ChartPro
+        data={chartDataForPro}
+        show={showChart}
+        onToggleShow={setShowChart}
+        selectedIndex={selectedWeekday}
+        onBarClick={(idx) => {
+          setSelectedWeekday(idx); // click-to-filter
+          const el = document.querySelector('[data-recent-logins]');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}
-      >
-        {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 6px 20px rgba(45, 159, 71, 0.3)',
-              }}
-            >
-              <TrendingUpIcon sx={{ color: 'white', fontSize: 26 }} />
-            </Box>
-            <Box>
-              <Typography variant="h5" fontWeight="800" color="text.primary">
-                Weekly Login Overview
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Daily login activity trends
-              </Typography>
-            </Box>
-          </Box>
-
-          <Button
-            onClick={() => setShowChart(false)}
-            variant="outlined"
-            color="success"
-            size="small"
-            sx={{
-              textTransform: 'none',
-              borderRadius: 2,
-              px: 2.5,
-              fontWeight: 700,
-              boxShadow: '0 3px 10px rgba(45,159,71,0.15)',
-              '&:hover': {
-                backgroundColor: 'rgba(45,159,71,0.08)',
-              },
-            }}
-          >
-            Hide Chart
-          </Button>
-        </Box>
-
-        {/* Chart */}
-        <Box sx={{ height: 320 }}>
-          <Bar
-            ref={chartRef}                
-            onClick={handleBarClick}  
-            data={weeklyData}
-            options={{
-  responsive: true,
-  maintainAspectRatio: false,
-  animation: {
-    duration: 1200,
-    easing: 'easeOutQuart',
-  },
-  plugins: {
-    legend: { display: false },
-
-    // ✅ Show names in tooltip
-    tooltip: {
-      backgroundColor: '#0f1419',
-      titleColor: '#fff',
-      bodyColor: '#e0e0e0',
-      borderWidth: 1,
-      borderColor: '#2d9f47',
-      cornerRadius: 8,
-      padding: 12,
-      callbacks: {
-        // Title already shows the day label (Mon/Tue/...), so we customize the body
-        label: (ctx) => {
-          const idx = ctx.dataIndex;         // 0..6 (Mon..Sun)
-          const count = ctx.dataset.data[idx] || 0;
-          const names = weeklyNamesByDay[idx] || [];
-          const MAX = 8; // show up to 8 names in tooltip
-          const lines = [`${count} login${count === 1 ? '' : 's'}`];
-
-          if (names.length) {
-            lines.push(...names.slice(0, MAX).map(n => `• ${n}`));
-            if (names.length > MAX) {
-              lines.push(`… +${names.length - MAX} more`);
-            }
-          } else {
-            lines.push('• (no names)');
-          }
-          return lines;
-        },
-      },
-    },
-
-    // ✅ Always write the number on top of each bar
-    datalabels: {
-      anchor: 'end',
-      align: 'top',
-      formatter: (v) => (v ? v : ''),
-      // Keep it readable on your theme
-      color: '#222',
-      font: { weight: '700' }
-    },
-  },
-  scales: {
-    y: {
-      beginAtZero: true,
-      ticks: {
-        color: '#333',
-        font: { weight: '600' },
-        stepSize: 1,
-      },
-      grid: {
-        color: 'rgba(0,0,0,0.05)',
-        drawBorder: false,
-      },
-    },
-    x: {
-      ticks: {
-        color: '#444',
-        font: { weight: '700' },
-      },
-      grid: { display: false },
-    },
-  },
-}}
-
-          />
-        </Box>
-      </GlassCard>
+        title="Weekly Login Overview"
+        subtitle="Daily login activity trends"
+      />
     </Fade>
   </div>
 )}
+
 
 
             </>
@@ -2404,31 +2259,40 @@ if (!data) {
 </Dialog>
 
       {/* Enhanced Toast Notification */}
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={4000}
+<Snackbar
+  open={toast.open}
+  autoHideDuration={4000}
   onClose={() => setToast((t) => ({ ...t, open: false }))}
   anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-  TransitionComponent={(props) => <Slide {...props} direction="up" />}  
-  message={toast.message}
-  ContentProps={{
-    sx: {
-      backgroundColor:
+  TransitionComponent={(props) => <Slide {...props} direction="up" />}
+>
+  <Alert
+    onClose={() => setToast((t) => ({ ...t, open: false }))}
+    severity={
+      toast.severity === 'error'
+        ? 'error'
+        : toast.severity === 'success'
+        ? 'success'
+        : 'info'
+    }
+    variant="filled"
+    sx={{
+      color: 'white',
+      bgcolor:
         toast.severity === 'success'
           ? '#2d9f47'
           : toast.severity === 'error'
           ? '#d32f2f'
           : '#1976d2',
-      color: 'white',
       fontWeight: 600,
       letterSpacing: 0.3,
       textTransform: 'capitalize',
-    },
-  }}
-/>
+    }}
+  >
+    {toast.message}
+  </Alert>
+</Snackbar>
 </Box>
 );
 }
-
-
 
