@@ -690,7 +690,27 @@ setNotifications((prev) => [
   };
 
 // ✅ These hooks come first
-const hasLogins = Array.isArray(data?.recentLogins) && data?.recentLogins.length > 0;
+
+// ✅ Is there any recent login data?
+const hasLogins =
+  Array.isArray(data?.recentLogins) && data.recentLogins.length > 0;
+
+// Names per day (Mon..Sun), filtered exactly like the counts
+const weeklyNamesByDay = useMemo(() => {
+  if (!data?.recentLogins) return Array(7).fill(0).map(() => []);
+  const names = Array(7).fill(0).map(() => []);
+
+  data.recentLogins.forEach((user) => {
+    // same filters as weeklyData (ignoreSelected:true so totals are not constrained by selected weekday)
+    if (!matchesFilters(user, { ignoreSelected: true })) return;
+    const d = new Date(user.last_login);
+    const idx = d.getDay() === 0 ? 6 : d.getDay() - 1; // Monday=0
+    names[idx].push(user.name || user.email || 'Unknown');
+  });
+
+  // sort names alphabetically for cleaner tooltips (optional)
+  return names.map(list => list.sort((a, b) => a.localeCompare(b)));
+}, [data, matchesFilters]);
 
 // 🗓️ Weekly login data
 const weeklyData = useMemo(() => {
@@ -1711,46 +1731,79 @@ if (!data) {
             onClick={handleBarClick}  
             data={weeklyData}
             options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              animation: {
-                duration: 1200,
-                easing: 'easeOutQuart',
-              },
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: '#0f1419',
-                  titleColor: '#fff',
-                  bodyColor: '#e0e0e0',
-                  borderWidth: 1,
-                  borderColor: '#2d9f47',
-                  cornerRadius: 8,
-                  padding: 12,
-                },
-              },
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  ticks: {
-                    color: '#333',
-                    font: { weight: '600' },
-                    stepSize: 1,
-                  },
-                  grid: {
-                    color: 'rgba(0,0,0,0.05)',
-                    drawBorder: false,
-                  },
-                },
-                x: {
-                  ticks: {
-                    color: '#444',
-                    font: { weight: '700' },
-                  },
-                  grid: { display: false },
-                },
-              },
-            }}
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: {
+    duration: 1200,
+    easing: 'easeOutQuart',
+  },
+  plugins: {
+    legend: { display: false },
+
+    // ✅ Show names in tooltip
+    tooltip: {
+      backgroundColor: '#0f1419',
+      titleColor: '#fff',
+      bodyColor: '#e0e0e0',
+      borderWidth: 1,
+      borderColor: '#2d9f47',
+      cornerRadius: 8,
+      padding: 12,
+      callbacks: {
+        // Title already shows the day label (Mon/Tue/...), so we customize the body
+        label: (ctx) => {
+          const idx = ctx.dataIndex;         // 0..6 (Mon..Sun)
+          const count = ctx.dataset.data[idx] || 0;
+          const names = weeklyNamesByDay[idx] || [];
+          const MAX = 8; // show up to 8 names in tooltip
+          const lines = [`${count} login${count === 1 ? '' : 's'}`];
+
+          if (names.length) {
+            lines.push(...names.slice(0, MAX).map(n => `• ${n}`));
+            if (names.length > MAX) {
+              lines.push(`… +${names.length - MAX} more`);
+            }
+          } else {
+            lines.push('• (no names)');
+          }
+          return lines;
+        },
+      },
+    },
+
+    // ✅ Always write the number on top of each bar
+    datalabels: {
+      anchor: 'end',
+      align: 'top',
+      formatter: (v) => (v ? v : ''),
+      // Keep it readable on your theme
+      color: '#222',
+      font: { weight: '700' }
+    },
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: {
+        color: '#333',
+        font: { weight: '600' },
+        stepSize: 1,
+      },
+      grid: {
+        color: 'rgba(0,0,0,0.05)',
+        drawBorder: false,
+      },
+    },
+    x: {
+      ticks: {
+        color: '#444',
+        font: { weight: '700' },
+      },
+      grid: { display: false },
+    },
+  },
+}}
+
           />
         </Box>
       </GlassCard>
@@ -2376,4 +2429,6 @@ if (!data) {
 </Box>
 );
 }
+
+
 
