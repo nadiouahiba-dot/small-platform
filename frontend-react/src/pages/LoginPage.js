@@ -134,23 +134,24 @@ const LeftPanel = styled(Box)(({ theme }) => ({
   },
 }));
 
+/* ⬇️ Badge + image updated so the logo fills the box */
 const LogoBadge = styled(Box)({
   width: 148,
   height: 148,
   borderRadius: 30,
-  background:
-    "linear-gradient(150deg, rgba(255,255,255,0.22), rgba(255,255,255,0.10))",
-  display: "grid",
-  placeItems: "center",
+  overflow: "hidden",               // clip the image corners
+  background: "#ffffff",            // clean backdrop
   marginBottom: 18,
-  boxShadow:
-    "0 16px 34px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.25)",
-  border: "1px solid rgba(255,255,255,0.18)",
+  boxShadow: "0 16px 34px rgba(0,0,0,0.18)",
+  border: "1px solid rgba(255,255,255,0.28)",
+  display: "block",
 });
+
 const LogoImg = styled("img")({
-  width: "80%",
-  height: "80%",
-  objectFit: "contain",
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",               // fill the whole box (may crop slightly)
+  display: "block",
 });
 
 /* ========== RIGHT PANEL (mint) ========== */
@@ -312,7 +313,6 @@ export default function LoginPage() {
 
           {/* RIGHT – Mint surface */}
           <RightPanel>
-            {/* Greeting OUTSIDE the glass card */}
             <Box sx={{ mb: 2.5 }}>
               <Typography
                 sx={{
@@ -334,7 +334,6 @@ export default function LoginPage() {
               </Typography>
             </Box>
 
-            {/* Glass form card */}
             <FormCard variant="outlined">
               {errorMsg && (
                 <Alert
