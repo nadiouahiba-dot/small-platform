@@ -423,15 +423,7 @@ const [anchorNotif, setAnchorNotif] = useState(null);
 const [showAllNotifs, setShowAllNotifs] = useState(false);
 const MAX_NOTIFS = 6;
 
-const formatNotifDate = (value) => {
-  // supports both new "at" (ISO) and old "time" (string) fields
-  if (!value) return '';
-  const d = new Date(value);
-  if (isNaN(d)) return String(value); // fallback for legacy plain strings
-  const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
-  const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return `${dateStr} • ${timeStr}`;
-};
+
 
 // --- Notification grouping helpers (robust) ---
 const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -500,10 +492,32 @@ useEffect(() => {
     } else if (role !== 'admin' && e.key === `notifications_${email}`) {
       setNotifications(JSON.parse(e.newValue || '[]'));
     }
+
+    // ✅ Detect export events coming from ReportsPage
+    if (e.key === 'export_flag_pdf' || e.key === 'export_flag_csv') {
+      const type = e.key === 'export_flag_pdf' ? 'PDF' : 'CSV';
+      const notif = {
+        id: Date.now(),
+        message: `📦 Employees report exported to ${type}`,
+        at: new Date().toISOString(),
+      };
+
+      // Update state
+      setNotifications((prev) => [notif, ...prev]);
+
+      // Update localStorage instantly
+      const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
+      const updated = [notif, ...saved];
+      localStorage.setItem('notifications', JSON.stringify(updated));
+
+       setTimeout(() => localStorage.removeItem(e.key), 500);
+    }
   };
+
   window.addEventListener('storage', handleStorageChange);
   return () => window.removeEventListener('storage', handleStorageChange);
 }, [role, email]);
+
 
 
 // ✅ Keep notifications in localStorage even after refresh
@@ -520,7 +534,12 @@ useEffect(() => {
 
 const handleNotifOpen = (event) => {
   setAnchorNotif(event.currentTarget);
+
+  // ✅ Mark all as read when menu opens
+  const updated = notifications.map((n) => ({ ...n, read: true }));
+  setNotifications(updated);
 };
+
 
 const handleNotifClose = () => {
   setAnchorNotif(null);
@@ -584,6 +603,27 @@ useEffect(() => {
     setForm((f) => ({ ...f, [name]: value }));
   };
 
+// ✅ Push a new notification (shared across all tabs)
+const pushNotification = (message) => {
+  const newNotif = {
+    id: Date.now(),
+    message,
+    at: new Date().toISOString(),
+  };
+
+  // Update state immediately
+  setNotifications((prev) => [newNotif, ...prev]);
+
+  // Persist + trigger cross-tab refresh
+  setTimeout(() => {
+    const key = role === 'admin' ? 'notifications' : `notifications_${email}`;
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    const updated = [newNotif, ...existing];
+    localStorage.setItem(key, JSON.stringify(updated));
+    window.dispatchEvent(new Event('storage'));
+  }, 0);
+};
+
   const handleSaveUser = async () => {
     try {
       if (!form.name || !form.email) {
@@ -613,17 +653,14 @@ useEffect(() => {
         });
         setToast({ open: true, message: 'User created successfully! ✓', severity: 'success' });
       }
+
 // 🛠 Dynamic notification based on action
-setNotifications((prev) => [
-  {
-    id: Date.now(),
-    message: editingUser
-      ? `✏️ User "${form.name}" has been modified.`
-      : `✅ New user "${form.name}" has been added.`,
-    at: new Date().toISOString(), 
-  },
-  ...prev,
-]);
+pushNotification(
+  editingUser
+    ? `✏️ User "${form.name}" has been modified.`
+    : `✅ New user "${form.name}" has been added.`
+);
+
 
 
       closeModal();
@@ -644,10 +681,8 @@ setNotifications((prev) => [
       });
       setToast({ open: true, message: 'User deleted successfully! ✓', severity: 'success' });
 
-      setNotifications((prev) => [
-  { id: Date.now(), message: `🗑️ User "${user.name}" was deleted.`, at: new Date().toISOString(),  },
-  ...prev,
-]);
+      pushNotification(`🗑️ User "${user.name}" was deleted.`);
+
 
       axios
         .get(`${BASE_URL}/dashboard`, {
@@ -692,13 +727,13 @@ setNotifications((prev) => [
     }
   };
 
-// ✅ These hooks come first
 
-// ✅ Is there any recent login data?
+
+//  recent login data
 const hasLogins =
   Array.isArray(data?.recentLogins) && data.recentLogins.length > 0;
 
-// ✅ Names per day (Mon..Sun), filtered exactly like the counts
+// ✅ Names per day 
 const weeklyNamesByDay = useMemo(() => {
   if (!data?.recentLogins) return Array(7).fill(0).map(() => []);
   const names = Array(7).fill(0).map(() => []);
@@ -711,7 +746,7 @@ const weeklyNamesByDay = useMemo(() => {
     names[idx].push(user.name || user.email || 'Unknown');
   });
 
-  // sort names alphabetically for cleaner tooltips (optional)
+  // sort names alphabetically for cleaner tooltips 
   return names.map(list => list.sort((a, b) => a.localeCompare(b)));
 }, [data, matchesFilters]);
 
@@ -987,9 +1022,13 @@ if (!data) {
       },
     }}
   >
-    <Badge badgeContent={notifications.length} color="error">
-      <NotificationsIcon />
-    </Badge>
+    <Badge
+  badgeContent={notifications.filter((n) => !n.read).length}
+  color="error"
+>
+  <NotificationsIcon />
+</Badge>
+
   </IconButton>
 </Tooltip>
 
@@ -1031,60 +1070,114 @@ if (!data) {
           </Toolbar>
         </AppBar>
 
-{/* ✅ Notifications Dropdown */}
+
+{/* ✅ Notifications Dropdown Menu */}
 <Menu
   anchorEl={anchorNotif}
   open={Boolean(anchorNotif)}
-  onClose={() => {
-    setShowAllNotifs(false);
-    handleNotifClose();
-  }}
+  onClose={handleNotifClose}
   PaperProps={{
     sx: {
-      borderRadius: 2,
-      mt: 1,
-      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-      minWidth: 280,
-      maxWidth: 360,
-      maxHeight: showAllNotifs ? 500 : 'auto',
-      background: 'rgba(255,255,255,0.95)',
-      backdropFilter: 'blur(8px)',
+      mt: 1.5,
+      borderRadius: 3,
+      width: 340,
+      maxHeight: 400,
+      boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
+      overflowY: 'auto',
     },
   }}
 >
   {notifications.length > 0 ? (
     <>
       {Object.entries(groupNotifications(notifications, showAllNotifs, MAX_NOTIFS)).map(
-        ([section, items], sectionIdx, arr) => (
-          <Box key={section}>
-            {/* Section header */}
-            <Box sx={{ px: 2, pt: sectionIdx === 0 ? 1 : 2 }}>
-              <Typography
-                variant="overline"
-                sx={{ fontWeight: 800, color: 'text.secondary', letterSpacing: 1 }}
-              >
-                {section}
-              </Typography>
-            </Box>
+  ([section, items], sectionIdx, arr) => (
+    <Box key={section} sx={{ px: 2, pt: sectionIdx === 0 ? 1 : 2 }}>
+      {/* 🗓️ Section Header */}
+      <Box
+  sx={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1,
+    mb: 1,
+    px: 1,
+    py: 0.5,
+    borderRadius: 1,
+    bgcolor: 'rgba(45,159,71,0.08)',
+  }}
+>
+  <TimeIcon sx={{ fontSize: 18, color: '#1a7a35' }} />
+  <Typography
+    variant="subtitle2"
+    sx={{
+      fontWeight: 800,
+      color: '#1a7a35',
+      textTransform: 'capitalize',
+      fontSize: '0.9rem',
+    }}
+  >
+    {section}
+  </Typography>
+</Box>
 
-            {/* Section items */}
-            {items.map((notif) => (
-              <MenuItem key={notif.id} onClick={handleNotifClose}>
-                <ListItemText
-                  primary={notif.message}
-                  secondary={formatNotifDate(notif.at ?? notif.time)}
-                  primaryTypographyProps={{ fontWeight: 600, fontSize: '0.95rem' }}
-                  secondaryTypographyProps={{ fontSize: '0.8rem', color: 'text.secondary' }}
-                />
-              </MenuItem>
-            ))}
+      {/* 🔹 Notifications under this section */}
+      {items.map((notif) => (
+        <MenuItem
+          key={notif.id}
+          onClick={handleNotifClose}
+          sx={{
+            borderBottom: '1px dashed rgba(0,0,0,0.08)',
+            py: 1,
+            alignItems: 'flex-start',
+          }}
+        >
+          <ListItemText
+  primary={
+    <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.3 }}>
+      {notif.message}
+    </Typography>
+  }
+  secondary={
+    <Typography
+  variant="caption"
+  sx={{
+    display: 'block',
+    mt: 0.3,
+    color: 'text.secondary',
+    fontSize: '0.78rem',
+  }}
+>
+  {(() => {
+    const raw = notif.at ?? notif.time;
+    const d = new Date(raw);
+    if (!raw || isNaN(d)) return '(no date)';
+    const dateStr = d.toLocaleDateString(undefined, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    const timeStr = d.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${dateStr} – ${timeStr}`;
+  })()}
+</Typography>
 
-            {/* Divider between sections */}
-            {sectionIdx < arr.length - 1 && <Divider sx={{ my: 0.5 }} />}
-          </Box>
-        )
+  }
+/>
+        </MenuItem>
+      ))}
+
+      {sectionIdx < arr.length - 1 && (
+        <Divider sx={{ my: 1, borderColor: 'rgba(0,0,0,0.05)' }} />
       )}
+    </Box>
+  )
+)}
 
+
+      {/* 🔽 Show More / Less Button */}
       {notifications.length > MAX_NOTIFS && (
         <>
           <Divider />
@@ -1103,6 +1196,7 @@ if (!data) {
     </MenuItem>
   )}
 </Menu>
+
 
 
         {/* BODY */}
@@ -1446,37 +1540,37 @@ if (!data) {
                               >
                                 <PersonIcon sx={{ fontSize: 26 }} />
                               </Avatar>
-<ListItemText
-  primaryTypographyProps={{ component: 'div' }}
-  secondaryTypographyProps={{ component: 'span' }}
-  primary={
-    <Typography
-      component="div"
-      fontWeight="700"
-      sx={{ fontSize: '1.1rem', mb: 0.5 }}
-    >
-      {user.name}
-    </Typography>
-  }
-  secondary={
-    <Box
-      component="div"
-      sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}
-    >
-      <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-      <Typography
-        component="span"
-        variant="body2"
-        color="text.secondary"
-        sx={{ fontSize: '0.95rem' }}
-      >
-        {user.last_login
-          ? new Date(user.last_login).toLocaleString()
-          : 'Never logged in'}
-      </Typography>
-    </Box>
-  }
-/>
+                          <ListItemText
+                            primaryTypographyProps={{ component: 'div' }}
+                            secondaryTypographyProps={{ component: 'span' }}
+                            primary={
+                              <Typography
+                                component="div"
+                                fontWeight="700"
+                                sx={{ fontSize: '1.1rem', mb: 0.5 }}
+                              >
+                                {user.name}
+                              </Typography>
+                            }
+                            secondary={
+                              <Box
+                                component="div"
+                                sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}
+                              >
+                                <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography
+                                  component="span"
+                                  variant="body2"
+                                  color="text.secondary"
+                                  sx={{ fontSize: '0.95rem' }}
+                                >
+                                  {user.last_login
+                                    ? new Date(user.last_login).toLocaleString()
+                                    : 'Never logged in'}
+                                </Typography>
+                              </Box>
+                            }
+                          />
 
 
                             </StyledListItem>
@@ -1520,23 +1614,23 @@ if (!data) {
                     </Typography>
                   </Box>
 
-                  <TableContainer
-  component={GlassPaper}
-  sx={{
-    maxHeight: 800,
-    overflowY: 'auto',
-    '& .MuiTableCell-root': {
-      fontSize: '1.1rem', // ⬅️ Bigger text
-      py: 2.5, // ⬅️ More vertical spacing
-    },
-    '& .MuiTableHead-root .MuiTableCell-root': {
-      fontSize: '1.15rem', // ⬅️ Bigger headers
-      fontWeight: 800,
-      py: 2.8,
-    },
-  }}
->
-  <Table size="medium" aria-label="users table">
+                      <TableContainer
+                          component={GlassPaper}
+                          sx={{
+                            maxHeight: 800,
+                            overflowY: 'auto',
+                            '& .MuiTableCell-root': {
+                              fontSize: '1.1rem', // ⬅️ Bigger text
+                              py: 2.5, // ⬅️ More vertical spacing
+                            },
+                            '& .MuiTableHead-root .MuiTableCell-root': {
+                              fontSize: '1.15rem', // ⬅️ Bigger headers
+                              fontWeight: 800,
+                              py: 2.8,
+                            },
+                          }}
+                        >
+                          <Table size="medium" aria-label="users table">
 
                       <TableHead>
                         <TableRow sx={{ bgcolor: 'rgba(45, 159, 71, 0.08)' }}>
@@ -1573,12 +1667,12 @@ if (!data) {
                                   <TableCell sx={{ py: 2 }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                       <Avatar
-  sx={{
-    width: 55, // ⬅️ larger avatar
-    height: 55,
-    background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-    boxShadow: '0 4px 12px rgba(45, 159, 71, 0.25)',
-  }}
+                                        sx={{
+                                          width: 55, 
+                                          height: 55,
+                                          background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                                          boxShadow: '0 4px 12px rgba(45, 159, 71, 0.25)',
+                                        }}
 >
 
                                         <PersonIcon fontSize="small" />
@@ -1654,7 +1748,7 @@ if (!data) {
         onToggleShow={setShowChart}
         selectedIndex={selectedWeekday}
         onBarClick={(idx) => {
-          setSelectedWeekday(idx); // click-to-filter
+          setSelectedWeekday(idx); 
           const el = document.querySelector('[data-recent-logins]');
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}

@@ -773,12 +773,12 @@ doc.text(`Employees Report${periodLabel()}`, left + 16, top + 2);
                 color="success"
                 onClick={() => {
                   const now = new Date();
-                  const { week, year } = getISOWeekYear(now);  // you already have this helper above
-                  setFilterWeekNumber(week);                    // ← set the current ISO week
-                  setFilterWeekYear(year);                      // ← set the matching year
-                  setFilterPeriod('week');                      // period select will be disabled when weekNumber > 0
-                  setFilterStartDate('');                       // optional: clear custom dates
-                  setFilterEndDate('');                         // optional: clear custom dates
+                  const { week, year } = getISOWeekYear(now);  
+                  setFilterWeekNumber(week);                    
+                  setFilterWeekYear(year);                      
+                  setFilterPeriod('week');                      
+                  setFilterStartDate('');                       
+                  setFilterEndDate('');                         
                 }}
 
                 sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5, py: 1 }}
