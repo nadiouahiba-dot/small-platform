@@ -162,24 +162,35 @@ export default function ReportsPage() {
   const [filterWeekYear, setFilterWeekYear] = useState(currentYear);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    if (!token || role !== 'admin') {
-      setError('Access denied: Only admins can view reports.');
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  if (!token || role !== 'admin') {
+    setError('Access denied: Only admins can view reports.');
+    setLoading(false);
+    return;
+  }
+
+  // ✅ Construct ISO week param (same logic as dashboard)
+  const isoWeekParam =
+    filterWeekNumber > 0
+      ? `${filterWeekYear}${String(filterWeekNumber).padStart(2, '0')}`
+      : null;
+
+  axios
+    .get(`${BASE_URL}/reports`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: isoWeekParam ? { isoWeek: isoWeekParam } : {}, // ✅ send week param only if chosen
+    })
+    .then((res) => {
+      setEmployees(res.data);
       setLoading(false);
-      return;
-    }
-    axios
-      .get(`${BASE_URL}/reports`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        setEmployees(res.data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Failed to load employee reports. Please try again.');
-        setLoading(false);
-      });
-  }, []);
+    })
+    .catch(() => {
+      setError('Failed to load employee reports. Please try again.');
+      setLoading(false);
+    });
+}, [filterWeekNumber, filterWeekYear]); // ✅ re-run when week/year changes
+
 
   useEffect(() => {
     const now = new Date();
@@ -314,9 +325,15 @@ doc.text(`Employees Report${periodLabel()}`, left + 16, top + 2);
       headStyles: { fillColor: GREEN_DARK, textColor: 255, fontStyle: 'bold', halign: 'left' },
       bodyStyles: { textColor: [31, 41, 55] },
       alternateRowStyles: { fillColor: [245, 247, 250] },
-      columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 25, halign: 'left' }, 2: { cellWidth: 70 }, 3: { cellWidth: 40 } },
-      margin: { left, right },
-      tableWidth: pageWidth - left - right,
+      columnStyles: {
+      0: { cellWidth: 40 },
+      1: { cellWidth: 35, halign: 'left' },
+      2: { cellWidth: 64 },
+      3: { cellWidth: 42 },
+    },
+    margin: { left: 12, right: 12 },
+    tableWidth: 'wrap', // ✅ auto-adjusts to fit perfectly
+
       theme: 'grid',
       didDrawPage: () => {
         const page = doc.internal.getNumberOfPages();

@@ -547,21 +547,29 @@ const handleNotifClose = () => {
 
 
   useEffect(() => {
-    if (!token) {
-      setError('No token found. Please login.');
-      return;
-    }
+  if (!token) {
+    setError('No token found. Please login.');
+    return;
+  }
 
-    axios
-      .get(`${BASE_URL}/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setData(res.data);
-        setUsers(res.data.allUsers || []);
-      })
-      .catch(() => setError('Failed to load dashboard. Please login again.'));
-  }, [token]);
+  // ✅ Construct ISO week (e.g., 202543)
+  const isoWeekParam =
+    filterWeekNumber > 0
+      ? `${filterWeekYear}${String(filterWeekNumber).padStart(2, '0')}`
+      : null;
+
+  axios
+    .get(`${BASE_URL}/dashboard`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: isoWeekParam ? { isoWeek: isoWeekParam } : {}, // ✅ attach only if week selected
+    })
+    .then((res) => {
+      setData(res.data);
+      setUsers(res.data.allUsers || []);
+    })
+    .catch(() => setError('Failed to load dashboard. Please login again.'));
+}, [token, filterWeekNumber, filterWeekYear]); // ✅ refetch when week changes
+
 
   // 🗓️ Automatically select current week when page loads
 useEffect(() => {
@@ -1088,114 +1096,114 @@ if (!data) {
   }}
 >
   {notifications.length > 0 ? (
-    <>
-      {Object.entries(groupNotifications(notifications, showAllNotifs, MAX_NOTIFS)).map(
-  ([section, items], sectionIdx, arr) => (
-    <Box key={section} sx={{ px: 2, pt: sectionIdx === 0 ? 1 : 2 }}>
-      {/* 🗓️ Section Header */}
-      <Box
-  sx={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-    mb: 1,
-    px: 1,
-    py: 0.5,
-    borderRadius: 1,
-    bgcolor: 'rgba(45,159,71,0.08)',
-  }}
->
-  <TimeIcon sx={{ fontSize: 18, color: '#1a7a35' }} />
-  <Typography
-    variant="subtitle2"
-    sx={{
-      fontWeight: 800,
-      color: '#1a7a35',
-      textTransform: 'capitalize',
-      fontSize: '0.9rem',
-    }}
-  >
-    {section}
-  </Typography>
-</Box>
+    [
+      ...Object.entries(groupNotifications(notifications, showAllNotifs, MAX_NOTIFS)).map(
+        ([section, items], sectionIdx, arr) => (
+          <Box key={section} sx={{ px: 2, pt: sectionIdx === 0 ? 1 : 2 }}>
+            {/* 🗓️ Section Header */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mb: 1,
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                bgcolor: 'rgba(45,159,71,0.08)',
+              }}
+            >
+              <TimeIcon sx={{ fontSize: 18, color: '#1a7a35' }} />
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 800,
+                  color: '#1a7a35',
+                  textTransform: 'capitalize',
+                  fontSize: '0.9rem',
+                }}
+              >
+                {section}
+              </Typography>
+            </Box>
 
-      {/* 🔹 Notifications under this section */}
-      {items.map((notif) => (
-        <MenuItem
-          key={notif.id}
-          onClick={handleNotifClose}
-          sx={{
-            borderBottom: '1px dashed rgba(0,0,0,0.08)',
-            py: 1,
-            alignItems: 'flex-start',
-          }}
-        >
-          <ListItemText
-  primary={
-    <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.3 }}>
-      {notif.message}
-    </Typography>
-  }
-  secondary={
-    <Typography
-  variant="caption"
-  sx={{
-    display: 'block',
-    mt: 0.3,
-    color: 'text.secondary',
-    fontSize: '0.78rem',
-  }}
->
-  {(() => {
-    const raw = notif.at ?? notif.time;
-    const d = new Date(raw);
-    if (!raw || isNaN(d)) return '(no date)';
-    const dateStr = d.toLocaleDateString(undefined, {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-    const timeStr = d.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    return `${dateStr} – ${timeStr}`;
-  })()}
-</Typography>
+            {/* 🔹 Notifications under this section */}
+            {items.map((notif) => (
+              <MenuItem
+                key={notif.id}
+                onClick={handleNotifClose}
+                sx={{
+                  borderBottom: '1px dashed rgba(0,0,0,0.08)',
+                  py: 1,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <ListItemText
+                  primary={
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.3 }}>
+                      {notif.message}
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        mt: 0.3,
+                        color: 'text.secondary',
+                        fontSize: '0.78rem',
+                      }}
+                    >
+                      {(() => {
+                        const raw = notif.at ?? notif.time;
+                        const d = new Date(raw);
+                        if (!raw || isNaN(d)) return '(no date)';
+                        const dateStr = d.toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        });
+                        const timeStr = d.toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        });
+                        return `${dateStr} – ${timeStr}`;
+                      })()}
+                    </Typography>
+                  }
+                />
+              </MenuItem>
+            ))}
 
-  }
-/>
-        </MenuItem>
-      ))}
+            {sectionIdx < arr.length - 1 && (
+              <Divider sx={{ my: 1, borderColor: 'rgba(0,0,0,0.05)' }} />
+            )}
+          </Box>
+        )
+      ),
 
-      {sectionIdx < arr.length - 1 && (
-        <Divider sx={{ my: 1, borderColor: 'rgba(0,0,0,0.05)' }} />
-      )}
-    </Box>
-  )
-)}
-
-
-      {/* 🔽 Show More / Less Button */}
-      {notifications.length > MAX_NOTIFS && (
-        <>
-          <Divider />
-          <MenuItem
-            onClick={() => setShowAllNotifs((v) => !v)}
-            sx={{ justifyContent: 'center', fontWeight: 700 }}
-          >
-            {showAllNotifs ? 'Show less' : `Show ${notifications.length - MAX_NOTIFS} more`}
-          </MenuItem>
-        </>
-      )}
-    </>
+      // 🔽 Replaced Fragment with array
+      ...(notifications.length > MAX_NOTIFS
+        ? [
+            <Divider key="divider-more" />,
+            <MenuItem
+              key="show-more"
+              onClick={() => setShowAllNotifs((v) => !v)}
+              sx={{ justifyContent: 'center', fontWeight: 700 }}
+            >
+              {showAllNotifs ? 'Show less' : `Show ${notifications.length - MAX_NOTIFS} more`}
+            </MenuItem>,
+          ]
+        : []),
+    ]
   ) : (
     <MenuItem disabled>
       <ListItemText primary="No notifications" />
     </MenuItem>
   )}
 </Menu>
+
 
 
 
