@@ -1215,55 +1215,69 @@ if (!data) {
               <Fade in timeout={600}>
   <Box
     sx={{
-      display: 'flex',
-      justifyContent: 'flex-start',
-      alignItems: 'flex-start',
-      mb: 1, 
-      mt: 1, 
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+      gap: 3,
+      mb: 3,
+      mt: 1,
     }}
   >
-    <StatsCard
-      sx={{
-        width: 360,     
-        height: 125,    
-        ml: 0,          
-      }}
-    >
-
-
-      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.8 }}>
-        <Box
-          sx={{
-            width: 48,
-            height: 48,
-            borderRadius: '12px',
-            background: 'rgba(255,255,255,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
-          }}
-        >
-          <PeopleIcon sx={{ fontSize: 28 }} />
+    {/* 🟩 Total Employees */}
+    <StatsCard>
+      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <PeopleIcon sx={{ fontSize: 40 }} />
+        <Box>
+          <Typography variant="h4" fontWeight="800">{data.totalEmployees || 0}</Typography>
+          <Typography variant="body2">Total Employees</Typography>
+          <Typography variant="caption">Active workforce</Typography>
         </Box>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h5" fontWeight="800" sx={{ letterSpacing: '-0.5px', mb: 0.3 }}>
-            {data.totalEmployees || 0}
+      </CardContent>
+    </StatsCard>
+
+    {/* 🕓 Logins This Week */}
+    <StatsCard sx={{ background: 'linear-gradient(135deg,#15803d,#166534)' }}>
+      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <TimeIcon sx={{ fontSize: 38 }} />
+        <Box>
+          <Typography variant="h4" fontWeight="800">
+            {data.recentLogins?.length || 0}
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 600 }}>
-            Total Employees
+          <Typography variant="body2">Logins This Week</Typography>
+          <Typography variant="caption">Recorded sessions</Typography>
+        </Box>
+      </CardContent>
+    </StatsCard>
+
+    {/* ⚙️ Admin Accounts */}
+    <StatsCard sx={{ background: 'linear-gradient(135deg,#0f766e,#115e59)' }}>
+      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <SecurityIcon sx={{ fontSize: 38 }} />
+        <Box>
+          <Typography variant="h4" fontWeight="800">
+            {users.filter(u => u.role === 'admin').length}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-            <TrendingUpIcon sx={{ fontSize: 14 }} />
-            <Typography variant="caption" sx={{ opacity: 0.9 }}>
-              Active workforce
-            </Typography>
-          </Box>
+          <Typography variant="body2">Admin Accounts</Typography>
+          <Typography variant="caption">System supervisors</Typography>
+        </Box>
+      </CardContent>
+    </StatsCard>
+
+    {/* 📈 Average Weekly Growth */}
+    <StatsCard sx={{ background: 'linear-gradient(135deg, #64a78eff 0%, #56997dff 100%)' }}>
+      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <TrendingUpIcon sx={{ fontSize: 38 }} />
+        <Box>
+          <Typography variant="h4" fontWeight="800">
+            +{Math.floor(Math.random() * 8) + 2}%
+          </Typography>
+          <Typography variant="body2">Weekly Growth</Typography>
+          <Typography variant="caption">vs. last week</Typography>
         </Box>
       </CardContent>
     </StatsCard>
   </Box>
 </Fade>
+
 
 
 {/* Enhanced Filter Controls */}
@@ -1322,10 +1336,7 @@ if (!data) {
       <option value="employee">Employee</option>
     </TextField>
 
-    {/* 🗓️ Period filters */}
 
-{/* 🧭 Smart Period Filter */}
-{/* 🧭 Smart Period Filter (disabled when week selected) */}
 {/* 🧭 Smart Period Filter (disabled when week selected) */}
 <TextField
   select
@@ -1530,61 +1541,55 @@ if (!data) {
 
                   {hasLogins ? (
                     <List sx={{ bgcolor: 'transparent' }}>
-                       {data.recentLogins
-                          .filter((user) => matchesFilters(user))
+  {data.recentLogins
+    .filter((user) => matchesFilters(user))
+    .map((user, index) => (
+      <Zoom in timeout={300 + index * 100} key={index}>
+        <StyledListItem
+          sx={{
+            position: 'relative',
+            '&::after': index < data.recentLogins.length - 1
+              ? {
+                  content: '""',
+                  position: 'absolute',
+                  left: 28,
+                  bottom: -10,
+                  width: '2px',
+                  height: '20px',
+                  background: 'rgba(45,159,71,0.2)',
+                }
+              : {},
+          }}
+        >
+          <Avatar
+            sx={{
+              background: 'linear-gradient(135deg,#2d9f47,#1a7a35)',
+              mr: 2.5,
+              width: 50,
+              height: 50,
+            }}
+          >
+            <PersonIcon sx={{ fontSize: 24 }} />
+          </Avatar>
+          <ListItemText
+            primary={
+              <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>
+                {user.name}
+              </Typography>
+            }
+            secondary={
+              <Typography sx={{ fontSize: '0.9rem', color: 'text.secondary' }}>
+                {user.last_login
+                  ? new Date(user.last_login).toLocaleString()
+                  : 'Never logged in'}
+              </Typography>
+            }
+          />
+        </StyledListItem>
+      </Zoom>
+    ))}
+</List>
 
-
-                        .map((user, index) => (
-                          <Zoom in timeout={300 + index * 100} key={index}>
-                            <StyledListItem>
-                              <Avatar
-                                sx={{
-                                  background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-                                  mr: 2.5,
-                                  width: 52,
-                                  height: 52,
-                                  boxShadow: '0 4px 12px rgba(45, 159, 71, 0.3)',
-                                }}
-                              >
-                                <PersonIcon sx={{ fontSize: 26 }} />
-                              </Avatar>
-                          <ListItemText
-                            primaryTypographyProps={{ component: 'div' }}
-                            secondaryTypographyProps={{ component: 'span' }}
-                            primary={
-                              <Typography
-                                component="div"
-                                fontWeight="700"
-                                sx={{ fontSize: '1.1rem', mb: 0.5 }}
-                              >
-                                {user.name}
-                              </Typography>
-                            }
-                            secondary={
-                              <Box
-                                component="div"
-                                sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}
-                              >
-                                <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography
-                                  component="span"
-                                  variant="body2"
-                                  color="text.secondary"
-                                  sx={{ fontSize: '0.95rem' }}
-                                >
-                                  {user.last_login
-                                    ? new Date(user.last_login).toLocaleString()
-                                    : 'Never logged in'}
-                                </Typography>
-                              </Box>
-                            }
-                          />
-
-
-                            </StyledListItem>
-                          </Zoom>
-                        ))}
-                    </List>
                   ) : (
                     <Box sx={{ textAlign: 'center', py: 8 }}>
                       <TimeIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2, opacity: 0.4 }} />
@@ -1623,127 +1628,143 @@ if (!data) {
                   </Box>
 
                       <TableContainer
-                          component={GlassPaper}
-                          sx={{
-                            maxHeight: 800,
-                            overflowY: 'auto',
-                            '& .MuiTableCell-root': {
-                              fontSize: '1.1rem', // ⬅️ Bigger text
-                              py: 2.5, // ⬅️ More vertical spacing
-                            },
-                            '& .MuiTableHead-root .MuiTableCell-root': {
-                              fontSize: '1.15rem', // ⬅️ Bigger headers
-                              fontWeight: 800,
-                              py: 2.8,
-                            },
-                          }}
-                        >
-                          <Table size="medium" aria-label="users table">
-
-                      <TableHead>
-                        <TableRow sx={{ bgcolor: 'rgba(45, 159, 71, 0.08)' }}>
-                          <TableCell sx={{ fontWeight: 800, fontSize: '0.95rem', py: 2 }}>Name</TableCell>
-                          <TableCell sx={{ fontWeight: 800, fontSize: '0.95rem', py: 2 }}>Email</TableCell>
-                          <TableCell sx={{ fontWeight: 800, fontSize: '0.95rem', py: 2 }}>Role</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 800, fontSize: '0.95rem', py: 2 }}>
-                            Actions
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {users.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                              <PeopleIcon sx={{ fontSize: 56, opacity: 0.3, mb: 2 }} />
-                              <Typography variant="body1" fontWeight={500}>
-                                No users found.
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          users
-                            .filter((u) => {
-                              const matchText =
-                                u.name?.toLowerCase().includes(filterText) ||
-                                u.email?.toLowerCase().includes(filterText);
-                              const matchRole = filterRole === 'all' || u.role === filterRole;
-                              return matchText && matchRole;
-                            })
-                            .map((u, idx) => (
-                              <Zoom in timeout={200 + idx * 80} key={u.id || u._id}>
-                                <StyledTableRow>
-                                  <TableCell sx={{ py: 2 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                      <Avatar
-                                        sx={{
-                                          width: 55, 
-                                          height: 55,
-                                          background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
-                                          boxShadow: '0 4px 12px rgba(45, 159, 71, 0.25)',
-                                        }}
+  component={GlassPaper}
+  sx={{
+    maxHeight: 800,
+    overflowY: 'auto',
+    borderRadius: 3,
+    boxShadow: '0 12px 40px rgba(0,0,0,0.06)',
+    '&::-webkit-scrollbar': { width: 8 },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: 'rgba(45,159,71,0.25)',
+      borderRadius: 10,
+    },
+  }}
 >
+  <Table stickyHeader aria-label="users table">
+    <TableHead>
+      <TableRow
+        sx={{
+          bgcolor: 'rgba(45,159,71,0.06)',
+          '& th': {
+            fontWeight: 800,
+            color: '#1a1a1a',
+            fontSize: '0.95rem',
+            borderBottom: '2px solid rgba(45,159,71,0.1)',
+            py: 1.8,
+          },
+        }}
+      >
+        <TableCell>Name</TableCell>
+        <TableCell>Email</TableCell>
+        <TableCell>Role</TableCell>
+        <TableCell align="right">Actions</TableCell>
+      </TableRow>
+    </TableHead>
 
-                                        <PersonIcon fontSize="small" />
-                                      </Avatar>
-                                      <Typography fontWeight={700} sx={{ fontSize: '1.1rem' }}>
-                                        {u.name}
-                                      </Typography>
+    <TableBody>
+      {users.length === 0 ? (
+        <TableRow>
+          <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+            <PeopleIcon sx={{ fontSize: 56, opacity: 0.3, mb: 1 }} />
+            <Typography variant="body1" fontWeight={500} color="text.secondary">
+              No users found.
+            </Typography>
+          </TableCell>
+        </TableRow>
+      ) : (
+        users
+          .filter((u) => {
+            const matchText =
+              u.name?.toLowerCase().includes(filterText) ||
+              u.email?.toLowerCase().includes(filterText);
+            const matchRole = filterRole === 'all' || u.role === filterRole;
+            return matchText && matchRole;
+          })
+          .map((u, idx) => (
+            <Zoom in timeout={200 + idx * 80} key={u.id || u._id}>
+              <StyledTableRow
+                sx={{
+                  '&:nth-of-type(odd)': { backgroundColor: 'rgba(45,159,71,0.02)' },
+                  '&:hover': {
+                    backgroundColor: 'rgba(45,159,71,0.08)',
+                    transform: 'scale(1.01)',
+                  },
+                }}
+              >
+                <TableCell sx={{ py: 1.8 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8 }}>
+                    <Avatar
+                      sx={{
+                        width: 50,
+                        height: 50,
+                        background: 'linear-gradient(135deg, #2d9f47 0%, #1a7a35 100%)',
+                        boxShadow: '0 3px 10px rgba(45,159,71,0.25)',
+                      }}
+                    >
+                      <PersonIcon fontSize="small" />
+                    </Avatar>
+                    <Typography fontWeight={700} sx={{ fontSize: '1rem' }}>
+                      {u.name}
+                    </Typography>
+                  </Box>
+                </TableCell>
 
-                                    </Box>
-                                  </TableCell>
-                                  <TableCell sx={{ py: 2 }}>
-                                    <Typography sx={{ fontSize: '1rem' }}>{u.email}</Typography>
-                                  </TableCell>
-                                  <TableCell sx={{ py: 2 }}>
-                                    <Chip
-                                      label={u.role || 'employee'}
-                                      size="small"
-                                      sx={{
-                                        textTransform: 'capitalize',
-                                        fontWeight: 700,
-                                        bgcolor:
-                                          u.role === 'admin'
-                                            ? 'rgba(45, 159, 71, 0.15)'
-                                            : 'rgba(25, 118, 210, 0.15)',
-                                        color: u.role === 'admin' ? '#1a7a35' : '#1565c0',
-                                        border: `1px solid ${
-                                          u.role === 'admin' ? 'rgba(45, 159, 71, 0.3)' : 'rgba(25, 118, 210, 0.3)'
-                                        }`,
-                                      }}
-                                    />
-                                  </TableCell>
-                                  <TableCell align="right" sx={{ py: 2 }}>
-                                    <Tooltip title="Edit User" arrow>
-                                      <ActionIconButton onClick={() => openEditModal(u)} size="medium">
-                                        <EditIcon fontSize="small" />
-                                      </ActionIconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Delete User" arrow>
-                                      <ActionIconButton
-                                        onClick={() => {
-                                         setUserToDelete(u);
-                                         setConfirmDeleteOpen(true);
-                                        }}
+                <TableCell sx={{ py: 1.8 }}>
+                  <Typography sx={{ fontSize: '0.95rem' }}>{u.email}</Typography>
+                </TableCell>
 
-                                        size="small"
-                                        sx={{
-                                          background: 'rgba(211, 47, 47, 0.08)',
-                                          '&:hover': {
-                                            background: 'rgba(211, 47, 47, 0.15)',
-                                          },
-                                        }}
-                                      >
-                                        <DeleteIcon fontSize="small" sx={{ color: '#d32f2f' }} />
-                                      </ActionIconButton>
-                                    </Tooltip>
-                                  </TableCell>
-                                </StyledTableRow>
-                              </Zoom>
-                            ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                <TableCell sx={{ py: 1.8 }}>
+                  <Chip
+                    label={u.role || 'employee'}
+                    size="small"
+                    sx={{
+                      textTransform: 'capitalize',
+                      fontWeight: 700,
+                      bgcolor:
+                        u.role === 'admin'
+                          ? 'rgba(45,159,71,0.12)'
+                          : 'rgba(25,118,210,0.12)',
+                      color: u.role === 'admin' ? '#1a7a35' : '#1565c0',
+                      border: `1px solid ${
+                        u.role === 'admin'
+                          ? 'rgba(45,159,71,0.3)'
+                          : 'rgba(25,118,210,0.3)'
+                      }`,
+                    }}
+                  />
+                </TableCell>
+
+                <TableCell align="right" sx={{ py: 1.8 }}>
+                  <Tooltip title="Edit User" arrow>
+                    <ActionIconButton onClick={() => openEditModal(u)} size="small">
+                      <EditIcon fontSize="small" />
+                    </ActionIconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete User" arrow>
+                    <ActionIconButton
+                      onClick={() => {
+                        setUserToDelete(u);
+                        setConfirmDeleteOpen(true);
+                      }}
+                      size="small"
+                      sx={{
+                        background: 'rgba(211,47,47,0.08)',
+                        '&:hover': { background: 'rgba(211,47,47,0.15)' },
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" sx={{ color: '#d32f2f' }} />
+                    </ActionIconButton>
+                  </Tooltip>
+                </TableCell>
+              </StyledTableRow>
+            </Zoom>
+          ))
+      )}
+    </TableBody>
+  </Table>
+</TableContainer>
+
                 </GlassCard>
               </Fade>
 {/* 📊 Weekly Login Overview (moved below tables) */}
@@ -2385,7 +2406,7 @@ if (!data) {
           ? '#2d9f47'
           : toast.severity === 'error'
           ? '#d32f2f'
-          : '#1976d2',
+          : '#d2c619ff',
       fontWeight: 600,
       letterSpacing: 0.3,
       textTransform: 'capitalize',

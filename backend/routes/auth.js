@@ -59,20 +59,35 @@ router.post('/login', (req, res) => {
     if (!valid) return res.status(400).json({ message: 'Invalid credentials' });
 
     // Update last login
-    db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+    // Update last login
+db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
 
-    // Generate token
-    const token = jwt.sign(
-      { id: user.id, role: user.role, name: user.name, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+// Save login in login_history table
+db.query(
+  'INSERT INTO login_history (user_id) VALUES (?)',
+  [user.id],
+  (err) => {
+    if (err) {
+      console.error('❌ Error saving login history:', err);
+    } else {
+      console.log(`✅ Login recorded for user ID ${user.id}`);
+    }
+  }
+);
 
-    return res.json({
-      message: 'Login successful',
-      token,
-      role: user.role,
-    });
+// Generate token
+const token = jwt.sign(
+  { id: user.id, role: user.role, name: user.name, email: user.email },
+  JWT_SECRET,
+  { expiresIn: '1h' }
+);
+
+return res.json({
+  message: 'Login successful',
+  token,
+  role: user.role,
+});
+
   });
 });
 

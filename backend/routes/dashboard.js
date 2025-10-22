@@ -22,15 +22,42 @@ function authenticateToken(req, res, next) {
 // ================= Dashboard Route =================
 router.get('/dashboard', authenticateToken, (req, res) => {
   const { id, role } = req.user;
+  const { isoWeek } = req.query; // ✅ allow optional ?isoWeek=202543 filter
 
   if (role === 'admin') {
-    // ✅ For admin: total employees + recent logins + all users
+    // ✅ For admin: total employees + weekly logins + all users
     const totalQuery = `SELECT COUNT(*) AS totalEmployees FROM users WHERE role = 'employee'`;
-    const recentQuery = `SELECT id, name, email, role, last_login 
-                         FROM users ORDER BY last_login DESC LIMIT 5`;
-    const allUsersQuery = `SELECT id, name, email, role, last_login 
-                           FROM users ORDER BY id ASC`;
 
+    // ✅ Build dynamic recent logins query
+    let recentQuery = `
+      SELECT 
+        u.id, 
+        u.name, 
+        u.email, 
+        u.role, 
+        MAX(h.login_time) AS last_login
+      FROM login_history h
+      JOIN users u ON u.id = h.user_id
+    `;
+
+    // 🗓️ Apply week filter if provided (example: isoWeek=202543)
+    if (isoWeek) {
+      recentQuery += ` WHERE YEARWEEK(h.login_time, 1) = ${db.escape(isoWeek)} `;
+    }
+
+    recentQuery += `
+      GROUP BY u.id, u.name, u.email, u.role
+      ORDER BY last_login DESC
+      LIMIT 10;
+    `;
+
+    const allUsersQuery = `
+      SELECT id, name, email, role, last_login 
+      FROM users 
+      ORDER BY id ASC
+    `;
+
+    // ================= Run Queries =================
     db.query(totalQuery, (err, totalResult) => {
       if (err) {
         console.error('❌ Error fetching total employees:', err);
@@ -49,11 +76,12 @@ router.get('/dashboard', authenticateToken, (req, res) => {
             return res.status(500).json({ message: 'Database error (all users)', error: err.message });
           }
 
+          // ✅ Return combined dashboard data
           return res.json({
             role: 'admin',
             totalEmployees: totalResult[0].totalEmployees,
             recentLogins: recentResult,
-            allUsers: allUsersResult, // ✅ added full user list
+            allUsers: allUsersResult,
             message: 'Welcome Admin',
           });
         });
